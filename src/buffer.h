@@ -40,8 +40,14 @@ extern "C" {
 
 /*---------------------------------------------------------------------------*/
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
+typedef bool bool_t; /* XXX:  replace all */
+#define BOOL_TRUE true
+#define BOOL_FALSE false
+  
 /*--------------------------------------------------*/
 
 #define BEGIN_MACRO do {
