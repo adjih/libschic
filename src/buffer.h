@@ -2,6 +2,7 @@
  * Buffer related functions
  * Copied from contiki-senslab-unified/hipercom/node_ui/buffer.h 
  * by C.A., 16 June 2013
+ * March 2018: copied from ~/HgRep/NC-iotlab/ns-3.16-hana/nctools/src was:
  *---------------------------------------------------------------------------
  * Author: Cedric Adjih
  * Copyright 2013-2014 Inria
@@ -43,8 +44,9 @@ extern "C" {
 
 /*--------------------------------------------------*/
 
-#include "general.h"
-
+#define BEGIN_MACRO do {
+#define END_MACRO } while(0)
+  
 /*---------------------------------------------------------------------------*/
 
 /* internal macros */
