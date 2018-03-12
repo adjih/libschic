@@ -8,7 +8,7 @@
 // All rights reserved. Distributed only with permission.
 //---------------------------------------------------------------------------
 
-%module libthrykmodule
+%module liblethrykmodule
 
 %include "stdint.i"
 %include "cdata.i"
