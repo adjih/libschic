@@ -34,21 +34,26 @@
 #ifndef __BUFFER_H__
 #define __BUFFER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*---------------------------------------------------------------------------*/
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
   
+#include "lethryk_base.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*--------------------------------------------------*/
 
-#define BEGIN_MACRO do {
-#define END_MACRO } while(0)
-  
+#define BITS_PER_BYTE (8)
+
+#define BUFFER_SIZE_U8  (1)
+#define BUFFER_SIZE_U16 (2)
+#define BUFFER_SIZE_U32 (4)        
+
 /*---------------------------------------------------------------------------*/
 
 /* internal macros */
@@ -256,7 +261,7 @@ static inline void buffer_init(buffer_t* buffer, uint8_t* data,
 			       unsigned int capacity)
 { 
   BUFFER_INIT( (*buffer), data, capacity); 
-  buffer->has_bound_error = 0;
+  buffer->has_bound_error = false;
 }
 
 static inline void buffer_init_from_part(buffer_t* buffer, 
@@ -283,7 +288,6 @@ static inline void buffer_put_data(buffer_t* buffer,
 				   unsigned int added_data_size)
 { BUFFER_PUT_DATA( (*buffer), added_data, added_data_size, 
 		  (buffer)->has_bound_error = true); }
-
 
 
 #define BUFFER_PEEK_DATA(popped_data_size, buffer, err)		\
@@ -342,6 +346,12 @@ static inline uint32_t buffer_get_u32(buffer_t* buffer)
 		 (buffer)->has_bound_error = true; result=0); 
   return result;
 }
+
+static inline size_t buffer_get_position(buffer_t* buffer)
+{ return buffer->position; }
+    
+static inline size_t buffer_get_bit_position(buffer_t* buffer)
+{ return buffer->position * BITS_PER_BYTE; }
 
 /** @} */
 

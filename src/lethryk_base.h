@@ -7,10 +7,12 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define DEBUG(x...) BEGIN_MACRO printf(x) END_MACRO
+#include <stdio.h>
 
 #define BEGIN_MACRO do {
 #define END_MACRO } while(0)
+
+#define DEBUG(...) BEGIN_MACRO printf(__VA_ARGS__); END_MACRO
 
 /*---------------------------------------------------------------------------*/
 

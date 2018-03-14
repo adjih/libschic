@@ -24,8 +24,10 @@ USEMODULE += gnrc_sock_udp
 #USEMODULE += gnrc_nomac gnrc_zep
 #USEMODULE += gnrc_raw
 
-USEMODULE += gnrc_ipv6
+#USEMODULE += gnrc_udp
+#USEMODULE += sock_udp
 
+USEMODULE += gnrc_ipv6
 
 CFLAGS += -DDEVELHELP -DMYDEBUG=1
 QUIET ?= 1
@@ -45,4 +47,3 @@ include ${RIOTBASE}/Makefile.include
 
 # cd Tutorials/task-06 && make PORT=tap1 all term
 # sudo tcpdump -i tap0 -nl -x
-
