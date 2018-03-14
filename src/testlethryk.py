@@ -22,16 +22,13 @@ if False:
 
 import liblethrykmodule as lt
 
-
 data = lt.u8array(100)
-#print(dir(data.this))
-
+data[0] = 111
+data[1] = 1
+data[2] = 2
 data_buffer = lt.buffer_t()
-lt.buffer_init(data_buffer, data, 100)
-
-
-
-
-#print(dir(liblt))
+lt.buffer_init(data_buffer, data.cast(), 100)
+print(lt.buffer_get_u8(data_buffer))
+print(lt.buffer_get_u16(data_buffer))
 
 #---------------------------------------------------------------------------

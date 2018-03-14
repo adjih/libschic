@@ -9,14 +9,13 @@
 //---------------------------------------------------------------------------
 
 %module liblethrykmodule
-
 %include "stdint.i"
  //%include "cdata.i"
- //%include "carrays.i"
+%include "carrays.i"
  //%include "typemaps.i"
  //%include "cpointer.i"
 
- //%array_class(uint8_t, u8array)
+%array_class(uint8_t, u8array)
  //%array_class(uint16_t, u16array)
  //%pointer_functions(uint8_t,  u8ptr)
  //%pointer_functions(uint16_t, u16ptr)
