@@ -353,6 +353,13 @@ static inline size_t buffer_get_position(buffer_t* buffer)
 static inline size_t buffer_get_bit_position(buffer_t* buffer)
 { return buffer->position * BITS_PER_BYTE; }
 
+static inline size_t buffer_get_available(buffer_t* buffer)
+{
+  if (!buffer->has_bound_error)
+    return buffer->capacity - buffer->position;
+  else return 0;
+}
+
 /** @} */
 
 /*---------------------------------------------------------------------------*/

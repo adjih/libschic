@@ -5,7 +5,7 @@
 all: Tutorials RIOT
 
 RIOT:
-	git clone http://gitlab.com/adjih/RIOT -b dev-lethryk
+	git clone https://gitlab.inria.fr/adjih/RIOT -b dev-lethryk
 	@#git clone http://github.com/aabadie/RIOT -b tp3-lora-riot
 
 Tutorials:

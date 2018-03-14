@@ -46,7 +46,7 @@ typedef enum {
 typedef struct {
     uint32_t value;
     uint8_t *value_ptr;
-    size_t   length; /* in bytes; if 0, value is used otherwise position */
+    size_t   length; /* in bits */
 } target_value_t;
 
 /*&

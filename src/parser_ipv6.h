@@ -35,14 +35,26 @@ typedef enum {
     FID_IPv6_Hop_Limit,
 
     /*& 2172 9.7.  IPv6 addresses fields */
-    FID_IPv6_Source_Address,
-    FID_IPv6_Destination_Address,
+    FID_IPv6_Source_Address_Prefix,
+    FID_IPv6_Source_Address_IID,
+    FID_IPv6_Destination_Address_Prefix,    
+    FID_IPv6_Destination_Address_IID,
 
+    /*& 2251 9.9.  UDP source and destination port */
+    FID_IPv6_UDP_Source_Port,
+    FID_IPv6_UDP_Destination_Port,
+    
+    /*& 2275 9.10.  UDP length field */
+    FID_IPv6_UDP_Length,
+    
+    /*& 2287 9.11.  UDP Checksum field */    
+    FID_IPv6_UDP_Checksum,
+    
     FID_IPv6_Unused // XXX
 } field_id_ipv6_t;
 
-
-
+int lethryk_parse_ipv6(buffer_t* data,
+                       rule_token_t* result, size_t result_max_size);
 
 #ifdef __cplusplus
 }

@@ -15,8 +15,6 @@
  //%include "typemaps.i"
  //%include "cpointer.i"
 
-%array_class(uint8_t, u8array)
- //%array_class(uint16_t, u16array)
  //%pointer_functions(uint8_t,  u8ptr)
  //%pointer_functions(uint16_t, u16ptr)
  //%array_functions(uint8_t, u8block)
@@ -28,7 +26,8 @@
 #include "buffer.h"
 //#include "buffer.c"
 #include "lethryk.h"
-    
+#include "parser_ipv6.c" // XXX
+  
 %}
 
 %include "buffer.h"
@@ -36,6 +35,10 @@
 %include "lethryk.h"
 
 //---------------------------------------------------------------------------
+
+%array_class(uint8_t, u8array)
+%array_class(rule_token_t, rule_token_array)
+
 
 %inline %{
 
