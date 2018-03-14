@@ -1,0 +1,2896 @@
+   1
+   2
+   3
+   4
+   5 lpwan Working Group                                          A. Minaburo
+   6 Internet-Draft                                                    Acklio
+   7 Intended status: Informational                                L. Toutain
+   8 Expires: September 1, 2018                                IMT-Atlantique
+   9                                                                 C. Gomez
+  10                                     Universitat Politecnica de Catalunya
+  11                                                        February 28, 2018
+  12
+  13
+  14   LPWAN Static Context Header Compression (SCHC) and fragmentation for
+  15                               IPv6 and UDP
+  16                draft-ietf-lpwan-ipv6-static-context-hc-10
+  17
+  18 Abstract
+  19
+  20    This document defines the Static Context Header Compression (SCHC)
+  21    framework, which provides header compression and fragmentation
+  22    functionality.  SCHC has been tailored for Low Power Wide Area
+  23    Networks (LPWAN).
+  24
+  25    SCHC compression is based on a common static context stored in LPWAN
+  26    devices and in the network.  This document applies SCHC compression
+  27    to IPv6/UDP headers.  This document also specifies a fragmentation
+  28    and reassembly mechanism that is used to support the IPv6 MTU
+  29    requirement over LPWAN technologies.  Fragmentation is mandatory for
+  30    IPv6 datagrams that, after SCHC compression or when it has not been
+  31    possible to apply such compression, still exceed the layer two
+  32    maximum payload size.
+  33
+  34    The SCHC header compression mechanism is independent of the specific
+  35    LPWAN technology over which it will be used.  Note that this document
+  36    defines generic functionality.  This document purposefully offers
+  37    flexibility with regard to parameter settings and mechanism choices,
+  38    that are expected to be made in other, technology-specific,
+  39    documents.
+  40
+  41 Status of This Memo
+  42
+  43    This Internet-Draft is submitted in full conformance with the
+  44    provisions of BCP 78 and BCP 79.
+  45
+  46    Internet-Drafts are working documents of the Internet Engineering
+  47    Task Force (IETF).  Note that other groups may also distribute
+  48    working documents as Internet-Drafts.  The list of current Internet-
+  49    Drafts is at https://datatracker.ietf.org/drafts/current/.
+  50
+  51    Internet-Drafts are draft documents valid for a maximum of six months
+  52    and may be updated, replaced, or obsoleted by other documents at any
+  61    time.  It is inappropriate to use Internet-Drafts as reference
+  62    material or to cite them other than as "work in progress."
+  63
+  64    This Internet-Draft will expire on September 1, 2018.
+  65
+  66 Copyright Notice
+  67
+  68    Copyright (c) 2018 IETF Trust and the persons identified as the
+  69    document authors.  All rights reserved.
+  70
+  71    This document is subject to BCP 78 and the IETF Trust's Legal
+  72    Provisions Relating to IETF Documents
+  73    (https://trustee.ietf.org/license-info) in effect on the date of
+  74    publication of this document.  Please review these documents
+  75    carefully, as they describe your rights and restrictions with respect
+  76    to this document.  Code Components extracted from this document must
+  77    include Simplified BSD License text as described in Section 4.e of
+  78    the Trust Legal Provisions and are provided without warranty as
+  79    described in the Simplified BSD License.
+  80
+  81 Table of Contents
+  82
+  83    1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+  84    2.  LPWAN Architecture  . . . . . . . . . . . . . . . . . . . . .   4
+  85    3.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   5
+  86    4.  SCHC overview . . . . . . . . . . . . . . . . . . . . . . . .   8
+  87    5.  Rule ID . . . . . . . . . . . . . . . . . . . . . . . . . . .   9
+  88    6.  Static Context Header Compression . . . . . . . . . . . . . .  10
+  89      6.1.  SCHC C/D Rules  . . . . . . . . . . . . . . . . . . . . .  11
+  90      6.2.  Rule ID for SCHC C/D  . . . . . . . . . . . . . . . . . .  13
+  91      6.3.  Packet processing . . . . . . . . . . . . . . . . . . . .  13
+  92      6.4.  Matching operators  . . . . . . . . . . . . . . . . . . .  15
+  93      6.5.  Compression Decompression Actions (CDA) . . . . . . . . .  16
+  94        6.5.1.  not-sent CDA  . . . . . . . . . . . . . . . . . . . .  17
+  95        6.5.2.  value-sent CDA  . . . . . . . . . . . . . . . . . . .  17
+  96        6.5.3.  mapping-sent CDA  . . . . . . . . . . . . . . . . . .  17
+  97        6.5.4.  LSB(y) CDA  . . . . . . . . . . . . . . . . . . . . .  18
+  98        6.5.5.  DEViid, APPiid CDA  . . . . . . . . . . . . . . . . .  18
+  99        6.5.6.  Compute-* . . . . . . . . . . . . . . . . . . . . . .  18
+ 100    7.  Fragmentation . . . . . . . . . . . . . . . . . . . . . . . .  19
+ 101      7.1.  Overview  . . . . . . . . . . . . . . . . . . . . . . . .  19
+ 102      7.2.  Fragmentation Tools . . . . . . . . . . . . . . . . . . .  19
+ 103      7.3.  Reliability modes . . . . . . . . . . . . . . . . . . . .  22
+ 104      7.4.  Fragmentation Formats . . . . . . . . . . . . . . . . . .  24
+ 105        7.4.1.  Fragment format . . . . . . . . . . . . . . . . . . .  24
+ 106        7.4.2.  All-1 and All-0 formats . . . . . . . . . . . . . . .  25
+ 107        7.4.3.  ACK format  . . . . . . . . . . . . . . . . . . . . .  26
+ 108        7.4.4.  Abort formats . . . . . . . . . . . . . . . . . . . .  29
+ 117      7.5.  Baseline mechanism  . . . . . . . . . . . . . . . . . . .  30
+ 118        7.5.1.  No-ACK  . . . . . . . . . . . . . . . . . . . . . . .  31
+ 119        7.5.2.  ACK-Always  . . . . . . . . . . . . . . . . . . . . .  32
+ 120        7.5.3.  ACK-on-Error  . . . . . . . . . . . . . . . . . . . .  34
+ 121      7.6.  Supporting multiple window sizes  . . . . . . . . . . . .  36
+ 122      7.7.  Downlink SCHC fragment transmission . . . . . . . . . . .  36
+ 123    8.  Padding management  . . . . . . . . . . . . . . . . . . . . .  37
+ 124    9.  SCHC Compression for IPv6 and UDP headers . . . . . . . . . .  38
+ 125      9.1.  IPv6 version field  . . . . . . . . . . . . . . . . . . .  38
+ 126      9.2.  IPv6 Traffic class field  . . . . . . . . . . . . . . . .  38
+ 127      9.3.  Flow label field  . . . . . . . . . . . . . . . . . . . .  38
+ 128      9.4.  Payload Length field  . . . . . . . . . . . . . . . . . .  39
+ 129      9.5.  Next Header field . . . . . . . . . . . . . . . . . . . .  39
+ 130      9.6.  Hop Limit field . . . . . . . . . . . . . . . . . . . . .  39
+ 131      9.7.  IPv6 addresses fields . . . . . . . . . . . . . . . . . .  39
+ 132        9.7.1.  IPv6 source and destination prefixes  . . . . . . . .  40
+ 133        9.7.2.  IPv6 source and destination IID . . . . . . . . . . .  40
+ 134      9.8.  IPv6 extensions . . . . . . . . . . . . . . . . . . . . .  41
+ 135      9.9.  UDP source and destination port . . . . . . . . . . . . .  41
+ 136      9.10. UDP length field  . . . . . . . . . . . . . . . . . . . .  41
+ 137      9.11. UDP Checksum field  . . . . . . . . . . . . . . . . . . .  41
+ 138    10. Security considerations . . . . . . . . . . . . . . . . . . .  42
+ 139      10.1.  Security considerations for header compression . . . . .  42
+ 140      10.2.  Security considerations for SCHC fragmentation . . . . .  42
+ 141    11. Acknowledgements  . . . . . . . . . . . . . . . . . . . . . .  43
+ 142    12. References  . . . . . . . . . . . . . . . . . . . . . . . . .  43
+ 143      12.1.  Normative References . . . . . . . . . . . . . . . . . .  43
+ 144      12.2.  Informative References . . . . . . . . . . . . . . . . .  44
+ 145    Appendix A.  SCHC Compression Examples  . . . . . . . . . . . . .  44
+ 146    Appendix B.  Fragmentation Examples . . . . . . . . . . . . . . .  47
+ 147    Appendix C.  Fragmentation State Machines . . . . . . . . . . . .  53
+ 148    Appendix D.  Note . . . . . . . . . . . . . . . . . . . . . . . .  60
+ 149    Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  60
+ 150
+ 151 1.  Introduction
+ 152
+ 153    This document defines a header compression scheme and fragmentation
+ 154    functionality, both specially tailored for Low Power Wide Area
+ 155    Networks (LPWAN).
+ 156
+ 157    Header compression is needed to efficiently bring Internet
+ 158    connectivity to the node within an LPWAN network.  Some LPWAN
+ 159    networks properties can be exploited to get an efficient header
+ 160    compression:
+ 161
+ 162    o  The topology is star-oriented which means that all packets follow
+ 163       the same path.  For the necessity of this draft, the architecture
+ 164       is simple and is described as Devices (Dev) exchanging information
+ 173       with LPWAN Application Servers (App) through Network Gateways
+ 174       (NGW).
+ 175
+ 176    o  The traffic flows can be known in advance since devices embed
+ 177       built-in applications.  New applications cannot be easily
+ 178       installed in LPWAN devices, as they would in computers or
+ 179       smartphones.
+ 180
+ 181    The Static Context Header Compression (SCHC) is defined for this
+ 182    environment.  SCHC uses a context, where header information is kept
+ 183    in the header format order.  This context is static: the values of
+ 184    the header fields do not change over time.  This avoids complex
+ 185    resynchronization mechanisms, that would be incompatible with LPWAN
+ 186    characteristics.  In most cases, a small context identifier is enough
+ 187    to represent the full IPv6/UDP headers.  The SCHC header compression
+ 188    mechanism is independent of the specific LPWAN technology over which
+ 189    it is used.
+ 190
+ 191    LPWAN technologies impose some strict limitations on traffic.  For
+ 192    instance, devices are sleeping most of the time and MAY receive data
+ 193    during short periods of time after transmission to preserve battery.
+ 194    LPWAN technologies are also characterized, among others, by a very
+ 195    reduced data unit and/or payload size [I-D.ietf-lpwan-overview].
+ 196    However, some of these technologies do not provide fragmentation
+ 197    functionality, therefore the only option for them to support the IPv6
+ 198    MTU requirement of 1280 bytes [RFC2460] is to use a fragmentation
+ 199    protocol at the adaptation layer, below IPv6.  In response to this
+ 200    need, this document also defines a fragmentation/reassembly
+ 201    mechanism, which supports the IPv6 MTU requirement over LPWAN
+ 202    technologies.  Such functionality has been designed under the
+ 203    assumption that data unit out-of-sequence delivery will not happen
+ 204    between the entity performing fragmentation and the entity performing
+ 205    reassembly.
+ 206
+ 207    Note that this document defines generic functionality and
+ 208    purposefully offers flexibility with regard to parameter settings and
+ 209    mechanism choices, that are expected to be made in other, technology-
+ 210    specific documents.
+ 211
+ 212 2.  LPWAN Architecture
+ 213
+ 214    LPWAN technologies have similar network architectures but different
+ 215    terminology.  We can identify different types of entities in a
+ 216    typical LPWAN network, see Figure 1:
+ 217
+ 218    o Devices (Dev) are the end-devices or hosts (e.g. sensors,
+ 219    actuators, etc.).  There can be a very high density of devices per
+ 220    radio gateway.
+ 229    o The Radio Gateway (RGW), which is the end point of the constrained
+ 230    link.
+ 231
+ 232    o The Network Gateway (NGW) is the interconnection node between the
+ 233    Radio Gateway and the Internet.
+ 234
+ 235    o LPWAN-AAA Server, which controls the user authentication and the
+ 236    applications.
+ 237
+ 238    o Application Server (App)
+ 239
+ 240                                               +------+
+ 241     ()   ()   ()       |                      |LPWAN-|
+ 242      ()  () () ()     / \       +---------+   | AAA  |
+ 243    () () () () () () /   \======|    ^    |===|Server|  +-----------+
+ 244     ()  ()   ()     |           | <--|--> |   +------+  |APPLICATION|
+ 245    ()  ()  ()  ()  / \==========|    v    |=============|   (App)   |
+ 246      ()  ()  ()   /   \         +---------+             +-----------+
+ 247     Dev        Radio Gateways         NGW
+ 248
+ 249
+ 250                        Figure 1: LPWAN Architecture
+ 251
+ 252 3.  Terminology
+ 253
+ 254    This section defines the terminology and acronyms used in this
+ 255    document.
+ 256
+ 257    o  Abort.  A SCHC fragment format to signal the other end-point that
+ 258       the on-going fragment transmission is stopped and finished.
+ 259
+ 260    o  ACK (Acknowledgment).  A SCHC fragment format used to report the
+ 261       success or unsuccess reception of a set of SCHC fragments.
+ 262
+ 263    o  All-0.  The SCHC fragment format for the last frame of a window
+ 264       that is not the last one of a packet (see Window in this
+ 265       glossary).
+ 266
+ 267    o  All-1.  The SCHC fragment format for the last frame of the packet.
+ 268
+ 269    o  All-0 empty.  An All-0 SCHC fragment without a payload.  It is
+ 270       used to request the ACK with the encoded Bitmap when the
+ 271       Retransmission Timer expires, in a window that is not the last one
+ 272       of a packet.
+ 273
+ 274    o  All-1 empty.  An All-1 SCHC fragment without a payload.  It is
+ 275       used to request the ACK with the encoded Bitmap when the
+ 276       Retransmission Timer expires in the last window of a packet.
+ 285    o  App: LPWAN Application.  An application sending/receiving IPv6
+ 286       packets to/from the Device.
+ 287
+ 288    o  APP-IID: Application Interface Identifier.  Second part of the
+ 289       IPv6 address that identifies the application server interface.
+ 290
+ 291    o  Bi: Bidirectional, a rule entry that applies to headers of packets
+ 292       travelling in both directions (Up and Dw).
+ 293
+ 294    o  Bitmap: a field of bits in an acknowledgment message that tells
+ 295       the sender which SCHC fragments of a window were correctly
+ 296       received.
+ 297
+ 298    o  C: Checked bit.  Used in an acknowledgment (ACK) header to
+ 299       determine if the MIC locally computed by the receiver matches (1)
+ 300       the received MIC or not (0).
+ 301
+ 302    o  CDA: Compression/Decompression Action.  Describes the reciprocal
+ 303       pair of actions that are performed at the compressor to compress a
+ 304       header field and at the decompressor to recover the original
+ 305       header field value.
+ 306
+ 307    o  Compress Residue.  The bytes that need to be sent after applying
+ 308       the SCHC compression over each header field
+ 309
+ 310    o  Context: A set of rules used to compress/decompress headers.
+ 311
+ 312    o  Dev: Device.  A node connected to the LPWAN.  A Dev SHOULD
+ 313       implement SCHC.
+ 314
+ 315    o  Dev-IID: Device Interface Identifier.  Second part of the IPv6
+ 316       address that identifies the device interface.
+ 317
+ 318    o  DI: Direction Indicator.  This field tells which direction of
+ 319       packet travel (Up, Dw or Bi) a rule applies to.  This allows for
+ 320       assymmetric processing.
+ 321
+ 322    o  DTag: Datagram Tag. This SCHC fragmentation header field is set to
+ 323       the same value for all SCHC fragments carrying the same IPv6
+ 324       datagram.
+ 325
+ 326    o  Dw: Dw: Downlink direction for compression/decompression in both
+ 327       sides, from SCHC C/D in the network to SCHC C/D in the Dev.
+ 328
+ 329    o  FCN: Fragment Compressed Number.  This SCHC fragmentation header
+ 330       field carries an efficient representation of a larger-sized
+ 331       fragment number.
+ 332
+ 341    o  Field Description.  A line in the Rule Table.
+ 342
+ 343    o  FID: Field Identifier.  This is an index to describe the header
+ 344       fields in a Rule.
+ 345
+ 346    o  FL: Field Length is the length of the field in bits for fixed
+ 347       values or a type (variable, token length, ...) for length unknown
+ 348       at the rule creation.  The length of a header field is defined in
+ 349       the specific protocol standard.
+ 350
+ 351    o  FP: Field Position is a value that is used to identify the
+ 352       position where each instance of a field appears in the header.
+ 353
+ 354    o  SCHC Fragment: A data unit that carries a subset of a SCHC packet.
+ 355       SCHC Fragmentation is needed when the size of a SCHC packet
+ 356       exceeds the available payload size of the underlying L2 technology
+ 357       data unit.
+ 358
+ 359    o  IID: Interface Identifier.  See the IPv6 addressing architecture
+ 360       [RFC7136]
+ 361
+ 362    o  Inactivity Timer.  A timer used after receiving a SCHC fragment to
+ 363       detect when there is an error and there is no possibility to
+ 364       continue an on-going SCHC fragmented packet transmission.
+ 365
+ 366    o  L2: Layer two.  The immediate lower layer SCHC interfaces with.
+ 367       It is provided by an underlying LPWAN technology.
+ 368
+ 369    o  MIC: Message Integrity Check.  A SCHC fragmentation header field
+ 370       computed over an IPv6 packet before fragmentation, used for error
+ 371       detection after IPv6 packet reassembly.
+ 372
+ 373    o  MO: Matching Operator.  An operator used to match a value
+ 374       contained in a header field with a value contained in a Rule.
+ 375
+ 376    o  Retransmission Timer.  A timer used by the SCHC fragment sender
+ 377       during an on-going SCHC fragmented packet transmission to detect
+ 378       possible link errors when waiting for a possible incoming ACK.
+ 379
+ 380    o  Rule: A set of header field values.
+ 381
+ 382    o  Rule entry: A row in the rule that describes a header field.
+ 383
+ 384    o  Rule ID: An identifier for a rule, SCHC C/D in both sides share
+ 385       the same Rule ID for a specific packet.  A set of Rule IDs are
+ 386       used to support SCHC fragmentation functionality.
+ 387
+ 388
+ 397    o  SCHC C/D: Static Context Header Compression Compressor/
+ 398       Decompressor.  A mechanism used in both sides, at the Dev and at
+ 399       the network to achieve Compression/Decompression of headers.  SCHC
+ 400       C/D uses SCHC rules to perform compression and decompression.
+ 401
+ 402    o  SCHC packet: A packet (e.g. an IPv6 packet) whose header has been
+ 403       compressed as per the header compression mechanism defined in this
+ 404       document.  If the header compression process is unable to actually
+ 405       compress the packet header, the packet with the uncompressed
+ 406       header is still called a SCHC packet (in this case, a Rule ID is
+ 407       used to indicate that the packet header has not been compressed).
+ 408
+ 409    o  TV: Target value.  A value contained in the Rule that will be
+ 410       matched with the value of a header field.
+ 411
+ 412    o  Up: Uplink direction for compression/decompression in both sides,
+ 413       from the Dev SCHC C/D to the network SCHC C/D.
+ 414
+ 415    o  W: Window bit.  A SCHC fragment header field used in Window mode
+ 416       ({Frag}), which carries the same value for all SCHC fragments of a
+ 417       window.
+ 418
+ 419    o  Window: A subset of the SCHC fragments needed to carry a packet
+ 420       ({Frag}).
+ 421
+ 422 4.  SCHC overview
+ 423
+ 424    SCHC can be abstracted as an adaptation layer below IPv6 and the
+ 425    underlying LPWAN technology.  SCHC that comprises two sublayers (i.e.
+ 426    the Compression sublayer and the Fragmentation sublayer), as shown in
+ 427    Figure 2.
+ 428
+ 429
+ 430                 +----------------+
+ 431                 |      IPv6      |
+ 432              +- +----------------+
+ 433              |  |   Compression  |
+ 434        SCHC <   +----------------+
+ 435              |  |  Fragmentation |
+ 436              +- +----------------+
+ 437                 |LPWAN technology|
+ 438                 +----------------+
+ 439
+ 440
+ 441         Figure 2: Protocol stack comprising IPv6, SCHC and an LPWAN
+ 442                                 technology
+ 443
+ 444
+ 453    As per this document, when a packet (e.g. an IPv6 packet) needs to be
+ 454    transmitted, header compression is first applied to the packet.  The
+ 455    resulting packet after header compression (whose header MAY actually
+ 456    be smaller than that of the original packet or not) is called a SCHC
+ 457    packet.  Subsequently, and if the SCHC packet size exceeds the layer
+ 458    2 (L2) MTU, fragmentation is then applied to the SCHC packet.  This
+ 459    process is illustrated by Figure 3
+ 460
+ 461
+ 462           A packet (e.g. an IPv6 packet)
+ 463                      |
+ 464                      V
+ 465        +------------------------------+
+ 466        |SCHC Compression/Decompression|
+ 467        +------------------------------+
+ 468                      |
+ 469                  SCHC packet
+ 470                      |
+ 471                      V
+ 472            +------------------+
+ 473            |SCHC Fragmentation|  (if needed)
+ 474            +------------------+
+ 475                      |
+ 476                      V
+ 477               SCHC Fragment(s) (if needed)
+ 478
+ 479
+ 480
+ 481        Figure 3: SCHC operations from a sender point of view: header
+ 482                        compression and fragmentation
+ 483
+ 484 5.  Rule ID
+ 485
+ 486    Rule ID are identifiers used to select either the correct context to
+ 487    be used for Compression/Decompression functionalities or for SCHC
+ 488    Fragmentation or after trying to do SCHC C/D and SCHC fragmentation
+ 489    the packet is sent as is.  The size of the Rule ID is not specified
+ 490    in this document, as it is implementation-specific and can vary
+ 491    according to the LPWAN technology and the number of Rules, among
+ 492    others.
+ 493
+ 494    The Rule IDs identifiers are: * In the SCHC C/D context the Rule used
+ 495    to keep the Field Description of the header packet.
+ 496
+ 497    o  In SCHC Fragmentation to identify the specific modes and settings.
+ 498       In bidirectional SCHC fragmentation at least two Rules
+ 499       ID are needed.
+ 500
+ 509    o  And at least one Rule ID MAY be reserved to the case where no SCHC
+ 510       C/D nor SCHC fragmentation were possible.
+ 511
+ 512 6.  Static Context Header Compression
+ 513
+ 514    In order to perform header compression, this document defines a
+ 515    mechanism called Static Context Header Compression (SCHC), which is
+ 516    based on using context, i.e. a set of rules to compress or decompress
+ 517    headers.  SCHC avoids context synchronization, which is the most
+ 518    bandwidth-consuming operation in other header compression mechanisms
+ 519    such as RoHC [RFC5795].  Since the nature of packets are highly
+ 520    predictable in LPWAN networks, static contexts MAY be stored
+ 521    beforehand to omit transmitting some information over the air.  The
+ 522    contexts MUST be stored at both ends, and they can either be learned
+ 523    by a provisioning protocol, by out of band means, or they can be pre-
+ 524    provisioned.  The way the contexts are provisioned on both ends is
+ 525    out of the scope of this document.
+ 526
+ 527         Dev                                                 App
+ 528    +----------------+                                  +--------------+
+ 529    | APP1 APP2 APP3 |                                  |APP1 APP2 APP3|
+ 530    |                |                                  |              |
+ 531    |       UDP      |                                  |     UDP      |
+ 532    |      IPv6      |                                  |    IPv6      |
+ 533    |                |                                  |              |
+ 534    |SCHC Comp / Frag|                                  |              |
+ 535    +--------+-------+                                  +-------+------+
+ 536             |   +--+     +----+     +-----------+              .
+ 537             +~~ |RG| === |NGW | === |   SCHC    |... Internet ..
+ 538                 +--+     +----+     |Comp / Frag|
+ 539                                     +-----------+
+ 540
+ 541                           Figure 4: Architecture
+ 542
+ 543    Figure 4 The figure represents the architecture for SCHC (Static
+ 544    Context Header Compression) Compression / Fragmentation where SCHC C/
+ 545    D (Compressor/Decompressor) and SCHC Fragmentation are performed.  It
+ 546    is based on [I-D.ietf-lpwan-overview] terminology.  SCHC Compression
+ 547    / Fragmentation is located on both sides of the transmission in the
+ 548    Dev and in the Network side.  In the Uplink direction, the Device
+ 549    application packets use IPv6 or IPv6/UDP protocols.  Before sending
+ 550    these packets, the Dev compresses their headers using SCHC C/D and if
+ 551    the SCHC packet resulting from the compression exceeds the maximum
+ 552    payload size of the underlying LPWAN technology, SCHC fragmentation
+ 553    is performed, see Section 7.  The resulting SCHC fragments are sent
+ 554    as one or more L2 frames to an LPWAN Radio Gateway (RG) which
+ 555    forwards the frame(s) to a Network Gateway (NGW).
+ 556
+ 565    The NGW sends the data to an SCHC Fragmentation and then to the SCHC
+ 566    C/D for decompression.  The SCHC C/D in the Network side can be
+ 567    located in the Network Gateway (NGW) or somewhere else as long as a
+ 568    tunnel is established between the NGW and the SCHC Compression /
+ 569    Fragmentation.  Note that, for some LPWAN technologies, it MAY be
+ 570    suitable to locate SCHC fragmentation and reassembly functionality
+ 571    nearer the NGW, in order to better deal with time constraints of such
+ 572    technologies.  The SCHC C/Ds on both sides MUST share the same set of
+ 573    Rules.  After decompression, the packet can be sent over the Internet
+ 574    to one or several LPWAN Application Servers (App).
+ 575
+ 576    The SCHC Compression / Fragmentation process is symmetrical,
+ 577    therefore the same description applies to the reverse direction.
+ 578
+ 579 6.1.  SCHC C/D Rules
+ 580
+ 581    The main idea of the SCHC compression scheme is to transmit the Rule
+ 582    ID to the other end instead of sending known field values.  This Rule
+ 583    ID identifies a rule that provides the closest match to the original
+ 584    packet values.  Hence, when a value is known by both ends, it is only
+ 585    necessary to send the corresponding Rule ID over the LPWAN network.
+ 586    How Rules are generated is out of the scope of this document.  The
+ 587    rule MAY be changed but it will be specified in another document.
+ 588
+ 589    The context contains a list of rules (cf.  Figure 5).  Each Rule
+ 590    contains itself a list of Fields Descriptions composed of a field
+ 591    identifier (FID), a field length (FL), a field position (FP), a
+ 592    direction indicator (DI), a target value (TV), a matching operator
+ 593    (MO) and a Compression/Decompression Action (CDA).
+ 594
+ 595
+ 596
+ 597
+ 598
+ 599
+ 600
+ 601
+ 602
+ 603
+ 604
+ 605
+ 606
+ 607
+ 608
+ 609
+ 610
+ 611
+ 612
+ 621      /-----------------------------------------------------------------\
+ 622      |                         Rule N                                  |
+ 623     /-----------------------------------------------------------------\|
+ 624     |                       Rule i                                    ||
+ 625    /-----------------------------------------------------------------\||
+ 626    |  (FID)            Rule 1                                        |||
+ 627    |+-------+--+--+--+------------+-----------------+---------------+|||
+ 628    ||Field 1|FL|FP|DI|Target Value|Matching Operator|Comp/Decomp Act||||
+ 629    |+-------+--+--+--+------------+-----------------+---------------+|||
+ 630    ||Field 2|FL|FP|DI|Target Value|Matching Operator|Comp/Decomp Act||||
+ 631    |+-------+--+--+--+------------+-----------------+---------------+|||
+ 632    ||...    |..|..|..|   ...      | ...             | ...           ||||
+ 633    |+-------+--+--+--+------------+-----------------+---------------+||/
+ 634    ||Field N|FL|FP|DI|Target Value|Matching Operator|Comp/Decomp Act|||
+ 635    |+-------+--+--+--+------------+-----------------+---------------+|/
+ 636    |                                                                 |
+ 637    \-----------------------------------------------------------------/
+ 638
+ 639
+ 640                 Figure 5: Compression/Decompression Context
+ 641
+ 642    The Rule does not describe how to delineate each field in the
+ 643    original packet header.  This MUST be known from the compressor/
+ 644    decompressor.  The rule only describes the compression/decompression
+ 645    behavior for each header field.  In the rule, the Fields Descriptions
+ 646    are listed in the order in which the fields appear in the packet
+ 647    header.
+ 648
+ 649    The Rule also describes the Compression Residue sent regarding the
+ 650    order of the Fields Descriptions in the Rule.
+ 651
+ 652    The Context describes the header fields and its values with the
+ 653    following entries:
+ 654
+ 655    o  Field ID (FID) is a unique value to define the header field.
+ 656
+ 657    o  Field Length (FL) represents the length of the field in bits for
+ 658       fixed values or a type (variable, token length, ...) for Field
+ 659       Description length unknown at the rule creation.  The length of a
+ 660       header field is defined in the specific protocol standard.
+ 661
+ 662    o  Field Position (FP): indicating if several instances of a field
+ 663       exist in the headers which one is targeted.  The default position
+ 664       is 1.
+ 665
+ 666    o  A direction indicator (DI) indicating the packet direction(s) this
+ 667       Field Description applies to.  Three values are possible:
+ 668
+ 677       *  UPLINK (Up): this Field Description is only applicable to
+ 678          packets sent by the Dev to the App,
+ 679
+ 680       *  DOWNLINK (Dw): this Field Description is only applicable to
+ 681          packets sent from the App to the Dev,
+ 682
+ 683       *  BIDIRECTIONAL (Bi): this Field Description is applicable to
+ 684          packets travelling both Up and Dw.
+ 685
+ 686    o  Target Value (TV) is the value used to make the match with the
+ 687       packet header field.  The Target Value can be of any type
+ 688       (integer, strings, etc.).  For instance, it can be a single value
+ 689       or a more complex structure (array, list, etc.), such as a JSON or
+ 690       a CBOR structure.
+ 691
+ 692    o  Matching Operator (MO) is the operator used to match the Field
+ 693       Value and the Target Value.  The Matching Operator may require
+ 694       some parameters.  MO is only used during the compression phase.
+ 695       The set of MOs defined in this document can be found in
+ 696       Section 6.4.
+ 697
+ 698    o  Compression Decompression Action (CDA) describes the compression
+ 699       and decompression processes to be performed after the MO
+ 700       is applied.  The CDA MAY require some parameters to be processed.
+ 701       CDAs are used in both the compression and the decompression
+ 702       functions.  The set of CDAs defined in this document can be found
+ 703       in Section 6.5.
+ 704
+ 705 6.2.  Rule ID for SCHC C/D
+ 706
+ 707    Rule IDs are sent by the compression function in one side and are
+ 708    received for the decompression function in the other side.  In SCHC
+ 709    C/D, the Rule IDs are specific to a Dev. Hence, multiple Dev
+ 710    instances MAY use the same Rule ID to define different header
+ 711    compression contexts.  To identify the correct Rule ID, the SCHC C/D
+ 712    needs to correlate the Rule ID with the Dev identifier to find the
+ 713    appropriate Rule to be applied.
+ 714
+ 715 6.3.  Packet processing
+ 716
+ 717    The compression/decompression process follows several steps:
+ 718
+ 719    o  Compression Rule selection: The goal is to identify which Rule(s)
+ 720       will be used to compress the packet's headers.  When
+ 721       doing decompression, in the network side the SCHC C/D needs to
+ 722       find the correct Rule based on the L2 address and in this way, it
+ 723       can use the Dev-ID and the Rule-ID.  In the Dev side, only the
+ 724       Rule ID is needed to identify the correct Rule since the Dev only
+ 733       holds Rules that apply to itself.  The Rule will be selected by
+ 734       matching the Fields Descriptions to the packet header as described
+ 735       below.  When the selection of a Rule is done, this Rule is used to
+ 736       compress the header.  The detailed steps for compression Rule
+ 737       selection are the following:
+ 738
+ 739       *  The first step is to choose the Fields Descriptions by their
+ 740          direction, using the direction indicator (DI).  A Field
+ 741          Description that does not correspond to the appropriate DI will
+ 742          be ignored, if all the fields of the packet do not have a Field
+ 743          Description with the correct DI the Rule is discarded and SCHC
+ 744          C/D proceeds to explore the next Rule.
+ 745
+ 746       *  When the DI has matched, then the next step is to identify the
+ 747          fields according to Field Position (FP).  If the Field Position
+ 748          does not correspond, the Rule is not used and the SCHC C/D
+ 749          proceeds to consider the next Rule.
+ 750
+ 751       *  Once the DI and the FP correspond to the header information,
+ 752          each field's value of the packet is then compared to the
+ 753          corresponding Target Value (TV) stored in the Rule for that
+ 754          specific field using the matching operator (MO).
+ 755
+ 756       *  If all the fields in the packet's header satisfy all the
+ 757          matching operators (MO) of a Rule (i.e. all MO results are
+ 758          True), the fields of the header are then compressed according
+ 759          to the Compression/Decompression Actions (CDAs) and a
+ 760          compressed header (with possibly a Compressed Residue) SHOULD
+ 761          be obtained.  Otherwise, the next Rule is tested.
+ 762
+ 763       *  If no eligible Rule is found, then the header MUST be sent
+ 764          without compression, depending on the L2 PDU size, this is one
+ 765          of the case that MAY require the use of the SCHC fragmentation
+ 766          process.
+ 767
+ 768    o  Sending: If an eligible Rule is found, the Rule ID is sent to the
+ 769       other end followed by the Compression Residue (which could be
+ 770       empty) and directly followed by the payload.  The product of the
+ 771       Compression Residue is sent in the order expressed in the Rule for
+ 772       all the fields.  The way the Rule ID is sent depends on the
+ 773       specific LPWAN layer two technology.  For example, it can be
+ 774       either included in a Layer 2 header or sent in the first byte of
+ 775       the L2 payload.  (Cf.  Figure 6).  This process will be specified
+ 776       in the LPWAN technology-specific document and is out of the scope
+ 777       of the present document.  On LPWAN technologies that are byte-
+ 778       oriented, the compressed header concatenated with the original
+ 779       packet payload is padded to a multiple of 8 bits, if needed.  See
+ 780       Section 8 for details.
+ 789    o  Decompression: When doing decompression, in the network side the
+ 790       SCHC C/D needs to find the correct Rule based on the L2 address
+ 791       and in this way, it can use the Dev-ID and the Rule-ID.  In the
+ 792       Dev side, only the Rule ID is needed to identify the correct Rule
+ 793       since the Dev only holds Rules that apply to itself.
+ 794
+ 795       The receiver identifies the sender through its device-id (e.g.
+ 796       MAC address, if exists) and selects the appropriate Rule
+ 797       from the Rule ID.  If a source identifier is present in the L2
+ 798       technology, it is used to select the Rule ID.  This Rule describes
+ 799       the compressed header format and associates the values to the
+ 800       header fields.  The receiver applies the CDA action to reconstruct
+ 801       the original header fields.  The CDA application order can be
+ 802       different from the order given by the Rule.  For instance,
+ 803       Compute-* SHOULD be applied at the end, after all the other CDAs.
+ 804
+ 805    +--- ... --+------- ... -------+------------------+~~~~~~~
+ 806    |  Rule ID |Compression Residue|  packet payload  |padding
+ 807    +--- ... --+------- ... -------+------------------+~~~~~~~
+ 808                                                       (optional)
+ 809    <----- compressed header ------>
+ 810
+ 811
+ 812                      Figure 6: SCHC C/D Packet Format
+ 813
+ 814 6.4.  Matching operators
+ 815
+ 816    Matching Operators (MOs) are functions used by both SCHC C/D
+ 817    endpoints involved in the header compression/decompression.  They are
+ 818    not typed and can be indifferently applied to integer, string or any
+ 819    other data type.  The result of the operation can either be True or
+ 820    False.  MOs are defined as follows:
+ 821
+ 822    o  equal: The match result is True if a field value in a packet and
+ 823       the value in the TV are equal.
+ 824
+ 825    o  ignore: No check is done between a field value in a packet and a
+ 826       TV in the Rule.  The result of the matching is always true.
+ 827
+ 828    o  MSB(x): A match is obtained if the most significant x bits of the
+ 829       field value in the header packet are equal to the TV in the Rule.
+ 830       The x parameter of the MSB Matching Operator indicates how many
+ 831       bits are involved in the comparison.
+ 832
+ 833    o  match-mapping: With match-mapping, the Target Value is a list of
+ 834       values.  Each value of the list is identified by a short ID (or
+ 835       index).  Compression is achieved by sending the index instead of
+ 836       the original header field value.  This operator matches if the
+ 845       header field value is equal to one of the values in the target
+ 846       list.
+ 847
+ 848 6.5.  Compression Decompression Actions (CDA)
+ 849
+ 850    The Compression Decompression Action (CDA) describes the actions
+ 851    taken during the compression of headers fields, and inversely, the
+ 852    action taken by the decompressor to restore the original value.
+ 853
+ 854    /--------------------+-------------+----------------------------\
+ 855    |  Action            | Compression | Decompression              |
+ 856    |                    |             |                            |
+ 857    +--------------------+-------------+----------------------------+
+ 858    |not-sent            |elided       |use value stored in ctxt    |
+ 859    |value-sent          |send         |build from received value   |
+ 860    |mapping-sent        |send index   |value from index on a table |
+ 861    |LSB(y)              |send LSB     |TV, received value          |
+ 862    |compute-length      |elided       |compute length              |
+ 863    |compute-checksum    |elided       |compute UDP checksum        |
+ 864    |Deviid              |elided       |build IID from L2 Dev addr  |
+ 865    |Appiid              |elided       |build IID from L2 App addr  |
+ 866    \--------------------+-------------+----------------------------/
+ 867    y=size of the transmitted bits
+ 868
+ 869
+ 870              Figure 7: Compression and Decompression Functions
+ 871
+ 872    Figure 7 summarizes the basic functions that can be used to compress
+ 873    and decompress a field.  The first column lists the actions name.
+ 874    The second and third columns outline the reciprocal compression/
+ 875    decompression behavior for each action.
+ 876
+ 877    Compression is done in order that Fields Descriptions appear in the
+ 878    Rule.  The result of each Compression/Decompression Action is
+ 879    appended to the working Compression Residue in that same order.  The
+ 880    receiver knows the size of each compressed field which can be given
+ 881    by the rule or MAY be sent with the compressed header.
+ 882
+ 883    If the field is identified as being variable in the Field
+ 884    Description, then the size of the Compression Residue value in bytes
+ 885    MUST be sent first using the following coding:
+ 886
+ 887    o  If the size is between 0 and 14 bytes, it is sent as a 4-bits
+ 888       integer.
+ 889
+ 890    o  For values between 15 and 255, the first 4 bits sent are set to 1
+ 891       and the size is sent using 8 bits integer.
+ 892
+ 901    o  For higher values of size, the first 12 bits are set to 1 and the
+ 902       next two bytes contain the size value as a 16 bits integer.
+ 903
+ 904    o  If a field does not exist in the packet but in the Rule and its FL
+ 905       is variable, the size zero MUST be used.
+ 906
+ 907 6.5.1.  not-sent CDA
+ 908
+ 909    The not-sent function is generally used when the field value is
+ 910    specified in the Rule and therefore known by both the Compressor and
+ 911    the Decompressor.  This action is generally used with the "equal" MO.
+ 912    If MO is "ignore", there is a risk to have a decompressed field value
+ 913    different from the compressed field.
+ 914
+ 915    The compressor does not send any value in the Compressed Residue for
+ 916    a field on which not-sent compression is applied.
+ 917
+ 918    The decompressor restores the field value with the Target Value
+ 919    stored in the matched Rule identified by the received Rule ID.
+ 920
+ 921 6.5.2.  value-sent CDA
+ 922
+ 923    The value-sent action is generally used when the field value is not
+ 924    known by both Compressor and Decompressor.  The value is sent in the
+ 925    compressed message header.  Both Compressor and Decompressor MUST
+ 926    know the size of the field, either implicitly (the size is known by
+ 927    both sides) or explicitly in the compression residue by indicating
+ 928    the length, as defined in Section 6.5.  This function is generally
+ 929    used with the "ignore" MO.
+ 930
+ 931 6.5.3.  mapping-sent CDA
+ 932
+ 933    The mapping-sent is used to send a smaller index (the index into the
+ 934    Target Value list of values) instead of the original value.  This
+ 935    function is used together with the "match-mapping" MO.
+ 936
+ 937    On the compressor side, the match-mapping Matching Operator searches
+ 938    the TV for a match with the header field value and the mapping-sent
+ 939    CDA appends the corresponding index to the Compression Residue to be
+ 940    sent.  On the decompressor side, the CDA uses the received index to
+ 941    restore the field value by looking up the list in the TV.
+ 942
+ 943    The number of bits sent is the minimal size for coding all the
+ 944    possible indices.
+ 945
+ 946
+ 947
+ 948
+ 957 6.5.4.  LSB(y) CDA
+ 958
+ 959    The LSB(y) action is used together with the "MSB(x)" MO to avoid
+ 960    sending the higher part of the packet field if that part is already
+ 961    known by the receiving end.  A length can be specified in the rule to
+ 962    indicate how many bits have to be sent.  If the length is not
+ 963    specified, the number of bits sent is the original header field
+ 964    length minus the length specified in the MSB(x) MO.
+ 965
+ 966    The compressor sends the Least Significant Bits (e.g.  LSB of the
+ 967    length field).  The decompressor combines the value received with the
+ 968    Target Value depending on the field type.
+ 969
+ 970    If this action needs to be done on a variable length field, the size
+ 971    of the Compressed Residue in bytes MUST be sent as described in
+ 972    Section 6.5.
+ 973
+ 974 6.5.5.  DEViid, APPiid CDA
+ 975
+ 976    These functions are used to process respectively the Dev and the App
+ 977    Interface Identifiers (Deviid and Appiid) of the IPv6 addresses.
+ 978    Appiid CDA is less common since current LPWAN technologies frames
+ 979    contain a single address, which is the Dev's address.
+ 980
+ 981    The IID value MAY be computed from the Device ID present in the Layer
+ 982    2 header, or from some other stable identifier.  The computation is
+ 983    specific for each LPWAN technology and MAY depend on the Device ID
+ 984    size.
+ 985
+ 986    In the Downlink direction, these Deviid CDA is used to determine the
+ 987    L2 addresses used by the LPWAN.
+ 988
+ 989 6.5.6.  Compute-*
+ 990
+ 991    Some fields are elided during compression and reconstructed during
+ 992    decompression.  This is the case for length and Checksum, so:
+ 993
+ 994    o  compute-length: computes the length assigned to this field.  This
+ 995       CDA MAY be used to compute IPv6 length or UDP length.
+ 996
+ 997    o  compute-checksum: computes a checksum from the information already
+ 998       received by the SCHC C/D.  This field MAY be used to compute UDP
+ 999       checksum.
+1000
+1001
+1002
+1003
+1004
+1013 7.  Fragmentation
+1014
+1015 7.1.  Overview
+1016
+1017    In LPWAN technologies, the L2 data unit size typically varies from
+1018    tens to hundreds of bytes.  The SCHC fragmentation MAY be used either
+1019    because after applying SCHC C/D or when SCHC C/D is not possible the
+1020    entire SCHC packet still exceeds the L2 data unit.
+1021
+1022    The SCHC fragmentation functionality defined in this document has
+1023    been designed under the assumption that data unit out-of- sequence
+1024    delivery will not happen between the entity performing fragmentation
+1025    and the entity performing reassembly.  This assumption allows
+1026    reducing the complexity and overhead of the SCHC fragmentation
+1027    mechanism.
+1028
+1029    To adapt the SCHC fragmentation to the capabilities of LPWAN
+1030    technologies is required to enable optional SCHC fragment
+1031    retransmission and to allow a stepper delivery for the reliability of
+1032    SCHC fragments.  This document does not make any decision with regard
+1033    to which SCHC fragment delivery reliability mode will be used over a
+1034    specific LPWAN technology.  These details will be defined in other
+1035    technology-specific documents.
+1036
+1037 7.2.  Fragmentation Tools
+1038
+1039    This subsection describes the different tools that are used to enable
+1040    the SCHC fragmentation functionality defined in this document, such
+1041    as fields in the SCHC fragmentation header frames (see the related
+1042    formats in Section 7.4), and the different parameters supported in
+1043    the reliability modes such as timers and parameters.
+1044
+1045    o  Rule ID.  The Rule ID is present in the SCHC fragment header and
+1046       in the ACK header format.  The Rule ID in a SCHC fragment header
+1047       is used to identify that a SCHC fragment is being carried, which
+1048       SCHC fragmentation reliability mode is used and which window size
+1049       is used.  The Rule ID in the SCHC fragmentation header also allows
+1050       interleaving non-fragmented packets and SCHC fragments that carry
+1051       other SCHC packets.  The Rule ID in an ACK identifies the message
+1052       as an ACK.
+1053
+1054    o  Fragment Compressed Number (FCN).  The FCN is included in all SCHC
+1055       fragments.  This field can be understood as a truncated,
+1056        efficient representation of a larger-sized fragment number, and
+1057       does not carry an absolute SCHC fragment number.  There are two
+1058       FCN reserved values that are used for controlling the SCHC
+1059       fragmentation process, as described next:
+1060
+1069       *  The FCN value with all the bits equal to 1 (All-1) denotes the
+1070          last SCHC fragment of a packet.  The last window of a packet is
+1071          called an All-1 window.
+1072
+1073       *  The FCN value with all the bits equal to 0 (All-0) denotes the
+1074          last SCHC fragment of a window that is not the last one of the
+1075          packet.  Such a window is called an All-0 window.
+1076
+1077       The rest of the FCN values are assigned in a sequentially
+1078       decreasing order, which has the purpose to avoid possible
+1079       ambiguity for the receiver that might arise under certain
+1080       conditions.  In the SCHC fragments, this field is an unsigned
+1081       integer, with a size of N bits.  In the No-ACK mode, it is set to
+1082       1 bit (N=1), All-0 is used in all SCHC fragments and All-1 for the
+1083       last one.  For the other reliability modes, it is recommended to
+1084       use a number of bits (N) equal to or greater than 3.
+1085       Nevertheless, the appropriate value of N MUST be defined in the
+1086       corresponding technology-specific profile documents.  For windows
+1087       that are not the last one from a SCHC fragmented packet, the FCN
+1088       for the last SCHC fragment in such windows is an All-0.  This
+1089       indicates that the window is finished and communication proceeds
+1090       according to the reliability mode in use.  The FCN for the last
+1091       SCHC fragment in the last window is an All-1, indicating the last
+1092       SCHC fragment of the SCHC packet.  It is also important to note
+1093       that, in the No-ACK mode or when N=1, the last SCHC fragment of
+1094       the packet will carry a FCN equal to 1, while all previous SCHC
+1095       fragments will carry a FCN of 0.  For further details see
+1096       Section 7.5.  The highest FCN in the window, denoted MAX_WIND_FCN,
+1097       MUST be a value equal to or smaller than 2^N-2.  (Example for N=5,
+1098       MAX_WIND_FCN MAY be set to 23, then subsequent FCNs are set
+1099       sequentially and in decreasing order, and the FCN will wrap from 0
+1100       back to 23).
+1101
+1102    o  Datagram Tag (DTag).  The DTag field, if present, is set to the
+1103       same value for all SCHC fragments carrying the same SCHC
+1104       packet, and to different values for different datagrams.  Using
+1105       this field, the sender can interleave fragments from different
+1106       SCHC packets, while the receiver can still tell them apart.  In
+1107       the SCHC fragment formats, the size of the DTag field is T bits,
+1108       which MAY be set to a value greater than or equal to 0 bits.  For
+1109       each new SCHC packet processed by the sender, DTag MUST be
+1110       sequentially increased, from 0 to 2^T - 1 wrapping back from 2^T -
+1111       1 to 0.  In the ACK format, DTag carries the same value as the
+1112       DTag field in the SCHC fragments for which this ACK is intended.
+1113
+1114    o  W (window): W is a 1-bit field.  This field carries the same value
+1115       for all SCHC fragments of a window, and it is complemented for the
+1116       next window.  The initial value for this field is 0.  In the ACK
+1125       format, this field also has a size of 1 bit.  In all ACKs, the W
+1126       bit carries the same value as the W bit carried by the SCHC
+1127       fragments whose reception is being positively or negatively
+1128       acknowledged by the ACK.
+1129
+1130    o  Message Integrity Check (MIC).  This field, which has a size of M
+1131       bits, is computed by the sender over the complete SCHC packet
+1132       before SCHC fragmentation.  The MIC allows the receiver to check
+1133       errors in the reassembled packet, while it also enables
+1134       compressing the UDP checksum by use of SCHC compression.  The
+1135       CRC32 as 0xEDB88320 (i.e. the reverse representation of the
+1136       polynomial used e.g. in the Ethernet standard [RFC3385]) is
+1137       recommended as the default algorithm for computing the MIC.
+1138       Nevertheless, other algorithms MAY be required and are defined in
+1139       the technology-specific documents.
+1140
+1141    o  C (MIC checked): C is a 1-bit field.  This field is used in the
+1142       ACK packets to report the outcome of the MIC check, i.e.  whether
+1143       the reassembled packet was correctly received or not.  A value of
+1144       1 represents a positive MIC check at the receiver side (i.e. the
+1145       MIC computed by the receiver matches the received MIC).
+1146
+1147    o  Retransmission Timer.  A SCHC fragment sender uses it after the
+1148       transmission of a window to detect a transmission error of the ACK
+1149       corresponding to this window.  Depending on the reliability mode,
+1150       it will lead to a request an ACK retransmission (in ACK-Always
+1151       mode) or it will trigger the transmission of the next window (in
+1152       ACK-on-Error mode).  The duration of this timer is not defined in
+1153       this document and MUST be defined in the corresponding technology
+1154       documents.
+1155
+1156    o  Inactivity Timer.  A SCHC fragment receiver uses it to take action
+1157       when there is a problem in the transmission of SCHC fragments.
+1158       Such a problem could be detected by the receiver not getting a
+1159       single SCHC fragment during a given period of time or not getting
+1160       a given number of packets in a given period of time.  When this
+1161       happens, an Abort message will be sent (see related text later in
+1162       this section).  Initially, and each time a SCHC fragment is
+1163       received, the timer is reinitialized.  The duration of this timer
+1164       is not defined in this document and MUST be defined in the
+1165       specific technology document.
+1166
+1167    o  Attempts.  This counter counts the requests for a missing ACK.
+1168       When it reaches the value MAX_ACK_REQUESTS, the sender assume
+1169       there are recurrent SCHC fragment transmission errors and
+1170       determines that an Abort is needed.  The default value offered
+1171       MAX_ACK_REQUESTS is not stated in this document, and it is
+1172       expected to be defined in the specific technology document.  The
+1181       Attempts counter is defined per window.  It is initialized each
+1182       time a new window is used.
+1183
+1184    o  Bitmap.  The Bitmap is a sequence of bits carried in an ACK.  Each
+1185       bit in the Bitmap corresponds to a SCHC fragment of the current
+1186       window, and provides feedback on whether the SCHC fragment has
+1187       been received or not.  The right-most position on the Bitmap
+1188       reports if the All-0 or All-1 fragment has been received or not.
+1189       Feedback on the SCHC fragment with the highest FCN value is
+1190       provided by the bit in the left-most position of the Bitmap.  In
+1191       the Bitmap, a bit set to 1 indicates that the SCHC fragment of FCN
+1192       corresponding to that bit position has been correctly sent and
+1193       received.  The text above describes the internal representation of
+1194       the Bitmap.  When inserted in the ACK for transmission from the
+1195       receiver to the sender, the Bitmap MAY be truncated for energy/
+1196       bandwidth optimisation, see more details in Section 7.4.3.1.
+1197
+1198    o  Abort.  On expiration of the Inactivity timer, or when Attempts
+1199       reached MAX_ACK_REQUESTS or upon an occurrence of some other
+1200       error, the sender or the receiver MUST use the Abort.  When the
+1201       receiver needs to abort the on-going SCHC fragmented packet
+1202       transmission, it sends the Receiver-Abort format.  When the sender
+1203       needs to abort the transmission, it sends the Sender-Abort format.
+1204       None of the Abort are acknowledged.
+1205
+1206    o  Padding (P).  If it is needed, the number of bits used for padding
+1207       is not defined and depends on the size of the Rule ID, DTag and
+1208       FCN fields, and on the L2 payload size (see Section 8).  Some ACKs
+1209       are byte-aligned and do not need padding (see Section 7.4.3.1).
+1210
+1211 7.3.  Reliability modes
+1212
+1213    This specification defines three reliability modes: No-ACK, ACK-
+1214    Always and ACK-on-Error.  ACK-Always and ACK-on-Error operate on
+1215    windows of SCHC fragments.  A window of SCHC fragments is a subset of
+1216    the full set of SCHC fragments needed to carry a packet or an SCHC
+1217    packet.
+1218
+1219    o  No-ACK.  No-ACK is the simplest SCHC fragment reliability mode.
+1220       The receiver does not generate overhead in the form of
+1221       acknowledgments (ACKs).  However, this mode does not enhance
+1222       reliability beyond that offered by the underlying LPWAN
+1223       technology.  In the No-ACK mode, the receiver MUST NOT issue ACKs.
+1224       See further details in Section 7.5.1.
+1225
+1226    o  ACK-Always.  The ACK-Always mode provides flow control using a
+1227       window scheme.  This mode is also able to handle long bursts of
+1228       lost SCHC fragments since detection of such events can be done
+1237       before the end of the SCHC packet transmission as long as the
+1238       window size is short enough.  However, such benefit comes at the
+1239       expense of ACK use.  In ACK-Always the receiver sends an ACK after
+1240       a window of SCHC fragments has been received, where a window of
+1241       SCHC fragments is a subset of the whole number of SCHC fragments
+1242       needed to carry a complete SCHC packet.  The ACK is used to inform
+1243       the sender if a SCHC fragment in the actual window has been lost
+1244       or well received.  Upon an ACK reception, the sender retransmits
+1245       the lost SCHC fragments.  When an ACK is lost and the sender has
+1246       not received it before the expiration of the Inactivity Timer, the
+1247       sender uses an ACK request by sending the All-1 empty SCHC
+1248       fragment.  The maximum number of ACK requests is MAX_ACK_REQUESTS.
+1249       If the MAX_ACK_REQUEST is reached the transmission needs to be
+1250       Aborted.  See further details in Section 7.5.2.
+1251
+1252    o  ACK-on-Error.  The ACK-on-Error mode is suitable for links
+1253       offering relatively low L2 data unit loss probability.  In this
+1254       mode, the SCHC fragment receiver reduces the number of ACKs
+1255       transmitted, which MAY be especially beneficial in asymmetric
+1256       scenarios.  Because the SCHC fragments use the uplink of the
+1257       underlying LPWAN technology, which has higher capacity than
+1258       downlink.  The receiver transmits an ACK only after the complete
+1259       window transmission and if at least one SCHC fragment of this
+1260       window has been lost.  An exception to this behavior is in the
+1261       last window, where the receiver MUST transmit an ACK, including
+1262       the C bit set based on the MIC checked result, even if all the
+1263       SCHC fragments of the last window have been correctly received.
+1264       The ACK gives the state of all the SCHC fragments (received or
+1265       lost).  Upon an ACK reception, the sender retransmits the lost
+1266       SCHC fragments.  If an ACK is not transmitted back by the receiver
+1267       at the end of a window, the sender assumes that all SCHC fragments
+1268       have been correctly received.  When the ACK is lost, the sender
+1269       assumes that all SCHC fragments covered by the lost ACK have been
+1270       successfully delivered, so the sender continues transmitting the
+1271       next window of SCHC fragments.  If the next SCHC fragments
+1272       received belong to the next window, the receiver will abort the
+1273       on-going fragmented packet transmission.  See further details in
+1274       {{ACK-on-Error- subsection}}.
+1275
+1276    The same reliability mode MUST be used for all SCHC fragments of an
+1277    SCHC packet.  The decision on which reliability mode will be used and
+1278    whether the same reliability mode applies to all SCHC packets is an
+1279    implementation problem and is out of the scope of this document.
+1280
+1281    Note that the reliability mode choice is not necessarily tied to a
+1282    particular characteristic of the underlying L2 LPWAN technology, e.g.
+1283    the No-ACK mode MAY be used on top of an L2 LPWAN technology with
+1284    symmetric characteristics for uplink and downlink.  This document
+1293    does not make any decision as to which SCHC fragment reliability
+1294    mode(s) are supported by a specific LPWAN technology.
+1295
+1296    Examples of the different reliability modes described are provided in
+1297    Appendix B.
+1298
+1299 7.4.  Fragmentation Formats
+1300
+1301    This section defines the SCHC fragment format, the All-0 and All-1
+1302    formats, the ACK format and the Abort formats.
+1303
+1304 7.4.1.  Fragment format
+1305
+1306    A SCHC fragment comprises a SCHC fragment header, a SCHC fragment
+1307    payload and padding bits (if needed).  A SCHC fragment conforms to
+1308    the general format shown in Figure 8.  The SCHC fragment payload
+1309    carries a subset of SCHC packet.  A SCHC fragment is the payload of
+1310    the L2 protocol data unit (PDU).  Padding MAY be added in SCHC
+1311    fragments and in ACKs if necessary, therefore a padding field is
+1312    optional (this is explicitly indicated in Figure 8 for the sake of
+1313    illustration clarity.
+1314
+1315          +-----------------+-----------------------+~~~~~~~~~~~~~~~
+1316          | Fragment Header |   Fragment payload    | padding (opt.)
+1317          +-----------------+-----------------------+~~~~~~~~~~~~~~~
+1318
+1319     Figure 8: Fragment general format.  Presence of a padding field is
+1320                                  optional
+1321
+1322    In ACK-Always or ACK-on-Error, SCHC fragments except the last one
+1323    SHALL conform the detailed format defined in {{Fig- NotLastWin}}. The
+1324    total size of the fragment header is R bits.  Where is R is not a
+1325    multiple of 8 bits.
+1326
+1327     <------------ R ----------->
+1328                <--T--> 1 <--N-->
+1329     +-- ... --+- ... -+-+- ... -+--------...-------+
+1330     | Rule ID | DTag  |W|  FCN  | Fragment payload |
+1331     +-- ... --+- ... -+-+- ... -+--------...-------+
+1332
+1333
+1334    Figure 9: Fragment Detailed Format for Fragments except the Last One,
+1335                                 Window mode
+1336
+1337    In the No-ACK mode, SCHC fragments except the last one SHALL conform
+1338    to the detailed format defined in Figure 10.  The total size of the
+1339    fragment header is R bits.
+1340
+1349    <------------ R ----------->
+1350                 <--T--> <--N-->
+1351     +-- ... --+- ...  -+- ... -+--------...-------+
+1352     | Rule ID |  DTag  |  FCN  | Fragment payload |
+1353     +-- ... --+- ...  -+- ... -+--------...-------+
+1354
+1355
+1356
+1357      Figure 10: Fragment Detailed Format for Fragments except the Last
+1358                              One, No-ACK mode
+1359
+1360    In all these cases, R may not be a multiple of 8 bits.
+1361
+1362 7.4.2.  All-1 and All-0 formats
+1363
+1364    The All-0 format is used for sending the last SCHC fragment of a
+1365    window that is not the last window of the packet.
+1366
+1367         <------------ R ----------->
+1368                    <- T -> 1 <- N ->
+1369         +-- ... --+- ... -+-+- ... -+--- ... ---+
+1370         | Rule ID | DTag  |W|  0..0 |  payload  |
+1371         +-- ... --+- ... -+-+- ... -+--- ... ---+
+1372
+1373
+1374                  Figure 11: All-0 fragment detailed format
+1375
+1376    The All-0 empty fragment format is used by a sender to request the
+1377    retransmission of an ACK by the receiver.  It is only used in ACK-
+1378    Always mode.
+1379
+1380     <------------ R ----------->
+1381                <- T -> 1 <- N ->
+1382     +-- ... --+- ... -+-+- ... -+
+1383     | Rule ID | DTag  |W|  0..0 | (no payload)
+1384     +-- ... --+- ... -+-+- ... -+
+1385
+1386
+1387               Figure 12: All-0 empty fragment detailed format
+1388
+1389    In the No-ACK mode, the last SCHC fragment of an IPv6 datagram SHALL
+1390    contain a SCHC fragment header that conforms to the detaield format
+1391    shown in Figure 13.  The total size of this SCHC fragment header is
+1392    R+M bits.
+1393
+1394
+1395
+1396
+1405    <------------ R ----------->
+1406                  <- T -> <N=1> <---- M ---->
+1407    +---- ... ---+- ... -+-----+---- ... ----+---...---+
+1408    |   Rule ID  | DTag  |  1  |     MIC     | payload |
+1409    +---- ... ---+- ... -+-----+---- ... ----+---...---+
+1410
+1411
+1412    Figure 13: All-1 Fragment Detailed Format for the Last Fragment, No-
+1413                                  ACK mode
+1414
+1415    In any of the Window modes, the last fragment of an IPv6 datagram
+1416    SHALL contain a SCHC fragment header that conforms to the detailed
+1417    format shown in Figure 14.  The total size of the SCHC fragment
+1418    header in this format is R+M bits.
+1419
+1420    <------------ R ----------->
+1421               <- T -> 1 <- N -> <---- M ---->
+1422    +-- ... --+- ... -+-+- ... -+---- ... ----+---...---+
+1423    | Rule ID | DTag  |W| 11..1 |     MIC     | payload |
+1424    +-- ... --+- ... -+-+- ... -+---- ... ----+---...---+
+1425                          (FCN)
+1426
+1427    Figure 14: All-1 Fragment Detailed Format for the Last Fragment, ACK-
+1428                           Always or ACK-on-Error
+1429
+1430    In either ACK-Always or ACK-on-Error, in order to request a
+1431    retransmission of the ACK for the All-1 window, the fragment sender
+1432    uses the format shown in Figure 15.  The total size of the SCHC
+1433    fragment header in this format is R+M bits.
+1434
+1435    <------------ R ----------->
+1436               <- T -> 1 <- N -> <---- M ---->
+1437    +-- ... --+- ... -+-+- ... -+---- ... ----+
+1438    | Rule ID | DTag  |W|  1..1 |     MIC     | (no payload)
+1439    +-- ... --+- ... -+-+- ... -+---- ... ----+
+1440
+1441
+1442        Figure 15: All-1 for Retries format, also called All-1 empty
+1443
+1444    The values for R, N, T and M are not specified in this document, and
+1445    SHOULD be determined in other documents (e.g. technology-specific
+1446    profile documents).
+1447
+1448 7.4.3.  ACK format
+1449
+1450    The format of an ACK that acknowledges a window that is not the last
+1451    one (denoted as All-0 window) is shown in Figure 16.
+1452
+1461      <--------- R -------->
+1462                  <- T -> 1
+1463      +---- ... --+-... -+-+---- ... -----+
+1464      |  Rule ID  | DTag |W|encoded Bitmap| (no payload)
+1465      +---- ... --+-... -+-+---- ... -----+
+1466
+1467
+1468                   Figure 16: ACK format for All-0 windows
+1469
+1470    To acknowledge the last window of a packet (denoted as All-1 window),
+1471    a C bit (i.e.  MIC checked) following the W bit is set to 1 to
+1472    indicate that the MIC check computed by the receiver matches the MIC
+1473    present in the All-1 fragment.  If the MIC check fails, the C bit is
+1474    set to 0 and the Bitmap for the All-1 window follows.
+1475
+1476    <---------- R --------->
+1477                <- T -> 1 1
+1478    +---- ... --+-... -+-+-+
+1479    |  Rule ID  | DTag |W|1| (MIC correct)
+1480    +---- ... --+-... -+-+-+
+1481
+1482    +---- ... --+-... -+-+-+----- ... -----+
+1483    |  Rule ID  | DTag |W|0|encoded Bitmap |(MIC Incorrect)
+1484    +---- ... --+-... -+-+-+----- ... -----+
+1485                          C
+1486
+1487
+1488                Figure 17: Format of an ACK for All-1 windows
+1489
+1490 7.4.3.1.  Bitmap Encoding
+1491
+1492    The Bitmap is transmitted by a receiver as part of the ACK format.
+1493    An ACK message MAY include padding at the end to align its number of
+1494    transmitted bits to a multiple of 8 bits.
+1495
+1496    Note that the ACK sent in response to an All-1 fragment includes the
+1497    C bit.  Therefore, the window size and thus the encoded Bitmap size
+1498    need to be determined taking into account the available space in the
+1499    layer two frame payload, where there will be 1 bit less for an ACK
+1500    sent in response to an All-1 fragment than in other ACKs.  Note that
+1501    the maximum number of SCHC fragments of the last window is one unit
+1502    smaller than that of the previous windows.
+1503
+1504    When the receiver transmits an encoded Bitmap with a SCHC fragment
+1505    that has not been sent during the transmission, the sender will Abort
+1506    the transmission.
+1507
+1508
+1517                        <----         Bitmap bits      ---->
+1518    | Rule ID | DTag |W|1|0|1|1|1|1|1|1|1|1|1|1|1|1|1|1|1|1|
+1519    |--- byte boundary ----| 1 byte  next  |  1 byte next  |
+1520
+1521
+1522                       Figure 18: A non-encoded Bitmap
+1523
+1524    In order to reduce the resulting frame size, the encoded Bitmap is
+1525    shortened by applying the following algorithm: all the right-most
+1526    contiguous bytes in the encoded Bitmap that have all their bits set
+1527    to 1 MUST NOT be transmitted.  Because the SCHC fragment sender knows
+1528    the actual Bitmap size, it can reconstruct the original Bitmap with
+1529    the trailing 1 bit optimized away.  In the example shown in
+1530    Figure 19, the last 2 bytes of the Bitmap shown in Figure 18 comprise
+1531    bits that are all set to 1, therefore they are not sent.
+1532
+1533         <-------   R  ------->
+1534                     <- T -> 1
+1535         +---- ... --+-... -+-+-+-+
+1536         |  Rule ID  | DTag |W|1|0|
+1537         +---- ... --+-... -+-+-+-+
+1538         |---- byte boundary -----|
+1539
+1540
+1541                     Figure 19: Optimized Bitmap format
+1542
+1543    Figure 20 shows an example of an ACK with FCN ranging from 6 down to
+1544    0, where the Bitmap indicates that the second and the fifth SCHC
+1545    fragments have not been correctly received.
+1546
+1547    <------   R  ------>6 5 4 3 2 1   0 (*)
+1548              <- T -> 1
+1549    +---------+------+-+-+-+-+-+-+-+-----+
+1550    | Rule ID | DTag |W|1|0|1|1|0|1|all-0| Bitmap(before tx)
+1551    +---------+------+-+-+-+-+-+-+-+-----+
+1552    |<-- byte boundary ->|<---- 1 byte---->|
+1553        (*)=(FCN values)
+1554
+1555    +---------+------+-+-+-+-+-+-+-+-----+~~
+1556    | Rule ID | DTag |W|1|0|1|1|0|1|all-0|Padding(opt.) encoded Bitmap
+1557    +---------+------+-+-+-+-+-+-+-+-----+~~
+1558    |<-- byte boundary ->|<---- 1 byte---->|
+1559
+1560
+1561         Figure 20: Example of a Bitmap before transmission, and the
+1562             transmitted one, in any window except the last one
+1563
+1564
+1573    Figure 21 shows an example of an ACK with FCN ranging from 6 down to
+1574    0, where the Bitmap indicates that the MIC check has failed but there
+1575    are no missing SCHC fragments.
+1576
+1577     <-------   R  ------->  6 5 4 3 2 1 7 (*)
+1578                 <- T -> 1 1
+1579     |  Rule ID  | DTag |W|0|1|1|1|1|1|1|1|padding|  Bitmap (before tx)
+1580     |---- byte boundary -----|  1 byte next |
+1581                           C
+1582     +---- ... --+-... -+-+-+-+
+1583     |  Rule ID  | DTag |W|0|1| encoded Bitmap
+1584     +---- ... --+-... -+-+-+-+
+1585     |<--- byte boundary ---->|
+1586       (*) = (FCN values indicating the order)
+1587
+1588
+1589     Figure 21: Example of the Bitmap in ACK-Always or ACK-on-Error for
+1590                          the last window, for N=3)
+1591
+1592 7.4.4.  Abort formats
+1593
+1594    Abort are coded as exceptions to the previous coding, a specific
+1595    format is defined for each direction.  When a SCHC fragment sender
+1596    needs to abort the transmission, it sends the Sender-Abort format
+1597    Figure 22, that is an All-1 fragment with no MIC or payload.  In
+1598    regular cases All-1 fragment contains at least a MIC value.  This
+1599    absence of the MIC value indicates an Abort.
+1600
+1601    When a SCHC fragment receiver needs to abort the on-going SCHC
+1602    fragmented packet transmission, it transmits the Receiver- Abort
+1603    format Figure 23, creating an exception in the encoded Bitmap coding.
+1604    Encoded Bitmap avoid sending the rigth most bits of the Bitmap set to
+1605    1.  Abort is coded as an ACK message with a Bitmap set to 1 until the
+1606    byte boundary, followed by an extra 0xFF byte.  Such message never
+1607    occurs in a regular acknowledgement and is view as an abort.
+1608
+1609    None of these messages are not acknowledged nor retransmitted.
+1610
+1611    The sender uses the Sender-Abort when the MAX_ACK_REQUEST is reached.
+1612    The receiver uses the Receiver-Abort when the Inactivity timer
+1613    expires, or in the ACK-on-Error mode, ACK is lost and the sender
+1614    transmits SCHC fragments of a new window.  Some other cases for Abort
+1615    are explained in the Section 7.5 or Appendix C.
+1616
+1617
+1618
+1619
+1620
+1629    <------------- R -----------><--- 1 byte --->
+1630    +--- ... ---+- ... -+-+-...-+-+-+-+-+-+-+-+-+
+1631    |  Rule ID  | DTag  |W| FCN |       FF      | (no MIC & no payload)
+1632    +--- ... ---+- ... -+-+-...-+-+-+-+-+-+-+-+-+
+1633
+1634
+1635     Figure 22: Sender-Abort format.  All FCN fields in this format are
+1636                                  set to 1
+1637
+1638     <----- byte boundary ------><--- 1 byte --->
+1639
+1640     +---- ... --+-... -+-+-+-+-+-+-+-+-+-+-+-+-+
+1641     |  Rule ID  | DTag |W| 1..1|       FF      |
+1642     +---- ... --+-... -+-+-+-+-+-+-+-+-+-+-+-+-+
+1643
+1644
+1645                      Figure 23: Receiver-Abort format
+1646
+1647 7.5.  Baseline mechanism
+1648
+1649    If after applying SCHC header compression (or when SCHC header
+1650    compression is not possible) the SCHC packet does not fit within the
+1651    payload of a single L2 data unit, the SCHC packet SHALL be broken
+1652    into SCHC fragments and the fragments SHALL be sent to the fragment
+1653    receiver.  The fragment receiver needs to identify all the SCHC
+1654    fragments that belong to a given SCHC packet.  To this end, the
+1655    receiver SHALL use:
+1656
+1657    o  The sender's L2 source address (if present),
+1658
+1659    o  The destination's L2 address (if present),
+1660
+1661    o  Rule ID,
+1662
+1663    o  DTag (if present).
+1664
+1665    Then, the fragment receiver MAY determine the SCHC fragment
+1666    reliability mode that is used for this SCHC fragment based on the
+1667    Rule ID in that fragment.
+1668
+1669    After a SCHC fragment reception, the receiver starts constructing the
+1670    SCHC packet.  It uses the FCN and the arrival order of each SCHC
+1671    fragment to determine the location of the individual fragments within
+1672    the SCHC packet.  For example, the receiver MAY place the fragment
+1673    payload within a payload datagram reassembly buffer at the location
+1674    determined from the FCN, the arrival order of the SCHC fragments, and
+1675    the fragment payload sizes.  In Window mode, the fragment receiver
+1676    also uses the W bit in the received SCHC fragments.  Note that the
+1685    size of the original, unfragmented packet cannot be determined from
+1686    fragmentation headers.
+1687
+1688    Fragmentation functionality uses the FCN value to transmit the SCHC
+1689    fragments.  It has a length of N bits where the All-1 and All-0 FCN
+1690    values are used to control the fragmentation transmission.  The rest
+1691    of the FCN numbers MUST be assigned sequentially in a decreasing
+1692    order, the first FCN of a window is RECOMMENDED to be MAX_WIND_FCN,
+1693    i.e. the highest possible FCN value depending on the FCN number of
+1694    bits.
+1695
+1696    In all modes, the last SCHC fragment of a packet MUST contain a MIC
+1697    which is used to check if there are errors or missing SCHC fragments
+1698    and MUST use the corresponding All-1 fragment format.  Note that a
+1699    SCHC fragment with an All-0 format is considered the last SCHC
+1700    fragment of the current window.
+1701
+1702    If the receiver receives the last fragment of a datagram (All-1), it
+1703    checks for the integrity of the reassembled datagram, based on the
+1704    MIC received.  In No-ACK, if the integrity check indicates that the
+1705    reassembled datagram does not match the original datagram (prior to
+1706    fragmentation), the reassembled datagram MUST be discarded.  In
+1707    Window mode, a MIC check is also performed by the fragment receiver
+1708    after reception of each subsequent SCHC fragment retransmitted after
+1709    the first MIC check.
+1710
+1711    There are three reliability modes: No-ACK, ACK-Always and ACK-on-
+1712    Error.  In ACK-Always and ACK-on-Error, a jumping window protocol
+1713    uses two windows alternatively, identified as 0 and 1.  A SCHC
+1714    fragment with all FCN bits set to 0 (i.e. an All-0 fragment)
+1715    indicates that the window is over (i.e. the SCHC fragment is the last
+1716    one of the window) and allows to switch from one window to the next
+1717    one.  The All-1 FCN in a SCHC fragment indicates that it is the last
+1718    fragment of the packet being transmitted and therefore there will not
+1719    be another window for this packet.
+1720
+1721 7.5.1.  No-ACK
+1722
+1723    In the No-ACK mode, there is no feedback communication from the
+1724    fragment receiver.  The sender will send all the SCHC fragments of a
+1725    packet without any possibility of knowing if errors or losses have
+1726    occurred.  As, in this mode, there is no need to identify specific
+1727    SCHC fragments, a one-bit FCN MAY be used.  Consequently, the FCN
+1728    All-0 value is used in all SCHC fragments except the last one, which
+1729    carries an All-1 FCN and the MIC.  The receiver will wait for SCHC
+1730    fragments and will set the Inactivity timer.  The receiver will use
+1731    the MIC contained in the last SCHC fragment to check for errors.
+1732    When the Inactivity Timer expires or if the MIC check indicates that
+1741    the reassembled packet does not match the original one, the receiver
+1742    will release all resources allocated to reassembling this packet.
+1743    The initial value of the Inactivity Timer will be determined based on
+1744    the characteristics of the underlying LPWAN technology and will be
+1745    defined in other documents (e.g.  technology-specific profile
+1746    documents).
+1747
+1748 7.5.2.  ACK-Always
+1749
+1750    In ACK-Always, the sender transmits SCHC fragments by using the two-
+1751    jumping-windows procedure.  A delay between each SCHC fragment can be
+1752    added to respect local regulations or other constraints imposed by
+1753    the applications.  Each time a SCHC fragment is sent, the FCN is
+1754    decreased by one.  When the FCN reaches value 0 and there are more
+1755    SCHC fragments to be sent after, the sender transmits the last SCHC
+1756    fragment of this window using the All-0 fragment format, it starts
+1757    the Retransmission Timer and waits for an ACK.  On the other hand, if
+1758    the FCN has reached 0 and the SCHC fragment to be transmitted is the
+1759    last SCHC fragment of the SCHC packet, the sender uses the All-1
+1760    fragment format, which includes a MIC.  The sender sets the
+1761    Retransmission Timer and waits for the ACK to know if transmission
+1762    errors have occured.
+1763
+1764    The Retransmission Timer is dimensioned based on the LPWAN technology
+1765    in use.  When the Retransmission Timer expires, the sender sends an
+1766    All-0 empty (resp.  All-1 empty) fragment to request again the ACK
+1767    for the window that ended with the All-0 (resp.  All-1) fragment just
+1768    sent.  The window number is not changed.
+1769
+1770    After receiving an All-0 or All-1 fragment, the receiver sends an ACK
+1771    with an encoded Bitmap reporting whether any SCHC fragments have been
+1772    lost or not.  When the sender receives an ACK, it checks the W bit
+1773    carried by the ACK.  Any ACK carrying an unexpected W bit value is
+1774    discarded.  If the W bit value of the received ACK is correct, the
+1775    sender analyzes the rest of the ACK message, such as the encoded
+1776    Bitmap and the MIC.  If all the SCHC fragments sent for this window
+1777    have been well received, and if at least one more SCHC fragment needs
+1778    to be sent, the sender advances its sending window to the next window
+1779    value and sends the next SCHC fragments.  If no more SCHC fragments
+1780    have to be sent, then the SCHC fragmented packet transmission is
+1781    finished.
+1782
+1783    However, if one or more SCHC fragments have not been received as per
+1784    the ACK (i.e. the corresponding bits are not set in the encoded
+1785    Bitmap) then the sender resends the missing SCHC fragments.  When all
+1786    missing SCHC fragments have been retransmitted, the sender starts the
+1787    Retransmission Timer, even if an All-0 or an All-1 has not been sent
+1788    as part of this retransmission and waits for an ACK.  Upon receipt of
+1797    the ACK, if one or more SCHC fragments have not yet been received,
+1798    the counter Attempts is increased and the sender resends the missing
+1799    SCHC fragments again.  When Attempts reaches MAX_ACK_REQUESTS, the
+1800    sender aborts the on-going SCHC fragmented packet transmission by
+1801    sending an Abort message and releases any resources for transmission
+1802    of the packet.  The sender also aborts an on-going SCHC fragmented
+1803    packet transmission when a failed MIC check is reported by the
+1804    receiver or when a SCHC fragment that has not been sent is reported
+1805    in the encoded Bitmap.
+1806
+1807    On the other hand, at the beginning, the receiver side expects to
+1808    receive window 0.  Any SCHC fragment received but not belonging to
+1809    the current window is discarded.  All SCHC fragments belonging to the
+1810    correct window are accepted, and the actual SCHC fragment number
+1811    managed by the receiver is computed based on the FCN value.  The
+1812    receiver prepares the encoded Bitmap to report the correctly received
+1813    and the missing SCHC fragments for the current window.  After each
+1814    SCHC fragment is received the receiver initializes the Inactivity
+1815    timer, if the Inactivity Timer expires the transmission is aborted.
+1816
+1817    When an All-0 fragment is received, it indicates that all the SCHC
+1818    fragments have been sent in the current window.  Since the sender is
+1819    not obliged to always send a full window, some SCHC fragment number
+1820    not set in the receiver memory SHOULD not correspond to losses.  The
+1821    receiver sends the corresponding ACK, the Inactivity Timer is set and
+1822    the transmission of the next window by the sender can start.
+1823
+1824    If an All-0 fragment has been received and all SCHC fragments of the
+1825    current window have also been received, the receiver then expects a
+1826    new Window and waits for the next SCHC fragment.  Upon receipt of a
+1827    SCHC fragment, if the window value has not changed, the received SCHC
+1828    fragments are part of a retransmission.  A receiver that has already
+1829    received a SCHC fragment SHOULD discard it, otherwise, it updates the
+1830    encoded Bitmap.  If all the bits of the encoded Bitmap are set to
+1831    one, the receiver MUST send an ACK without waiting for an All-0
+1832    fragment and the Inactivity Timer is initialized.
+1833
+1834    On the other hand, if the window value of the next received SCHC
+1835    fragment is set to the next expected window value, this means that
+1836    the sender has received a correct encoded Bitmap reporting that all
+1837    SCHC fragments have been received.  The receiver then updates the
+1838    value of the next expected window.
+1839
+1840    When an All-1 fragment is received, it indicates that the last SCHC
+1841    fragment of the packet has been sent.  Since the last window is not
+1842    always full, the MIC will be used to detect if all SCHC fragments of
+1843    the packet have been received.  A correct MIC indicates the end of
+1844    the transmission but the receiver MUST stay alive for an Inactivity
+1853    Timer period to answer to any empty All-1 fragments the sender MAY
+1854    send if ACKs sent by the receiver are lost.  If the MIC is incorrect,
+1855    some SCHC fragments have been lost.  The receiver sends the ACK
+1856    regardless of successful SCHC fragmented packet reception or not, the
+1857    Inactitivity Timer is set.  In case of an incorrect MIC, the receiver
+1858    waits for SCHC fragments belonging to the same window.  After
+1859    MAX_ACK_REQUESTS, the receiver will abort the on-going SCHC
+1860    fragmented packet transmission by transmitting a the Receiver-Abort
+1861    format.  The receiver also aborts upon Inactivity Timer expiration.
+1862
+1863 7.5.3.  ACK-on-Error
+1864
+1865    The senders behavior for ACK-on-Error and ACK-Always are similar.
+1866    The main difference is that in ACK-on-Error the ACK with the encoded
+1867    Bitmap is not sent at the end of each window but only when at least
+1868    one SCHC fragment of the current window has been lost.  Excepts for
+1869    the last window where an ACK MUST be sent to finish the transmission.
+1870
+1871    In ACK-on-Error, the Retransmission Timer expiration will be
+1872    considered as a positive acknowledgment.  This timer is set after
+1873    sending an All-0 or an All-1 fragment.  When the All-1 fragment has
+1874    been sent, then the on-going SCHC fragmentation process is finished
+1875    and the sender waits for the last ACK.  If the Retransmission Timer
+1876    expires while waiting for the ACK for the last window, an All-1 empty
+1877    MUST be sent to request the last ACK by the sender to complete the
+1878    SCHC fragmented packet transmission.  When it expires the sender
+1879    continue sending SCHC fragments of the next window.
+1880
+1881    If the sender receives an ACK, it checks the window value.  ACKs with
+1882    an unexpected window number are discarded.  If the window number on
+1883    the received encoded Bitmap is correct, the sender verifies if the
+1884    receiver has received all SCHC fragments of the current window.  When
+1885    at least one SCHC fragment has been lost, the counter Attempts is
+1886    increased by one and the sender resends the missing SCHC fragments
+1887    again.  When Attempts reaches MAX_ACK_REQUESTS, the sender sends an
+1888    Abort message and releases all resources for the on-going SCHC
+1889    fragmented packet transmission.  When the retransmission of the
+1890    missing SCHC fragments is finished, the sender starts listening for
+1891    an ACK (even if an All-0 or an All-1 has not been sent during the
+1892    retransmission) and initializes the Retransmission Timer.  After
+1893    sending an All-1 fragment, the sender listens for an ACK, initializes
+1894    Attempts, and starts the Retransmission Timer.  If the Retransmission
+1895    Timer expires, Attempts is increased by one and an empty All-1
+1896    fragment is sent to request the ACK for the last window.  If Attempts
+1897    reaches MAX_ACK_REQUESTS, the sender aborts the on-going SCHC
+1898    fragmented packet transmission by transmitting the Sender-Abort
+1899    fragment.
+1900
+1909    Unlike the sender, the receiver for ACK-on-Error has a larger amount
+1910    of differences compared with ACK-Always.  First, an ACK is not sent
+1911    unless there is a lost SCHC fragment or an unexpected behavior.  With
+1912    the exception of the last window, where an ACK is always sent
+1913    regardless of SCHC fragment losses or not.  The receiver starts by
+1914    expecting SCHC fragments from window 0 and maintains the information
+1915    regarding which SCHC fragments it receives.  After receiving an SCHC
+1916    fragment, the Inactivity Timer is set.  If no further SCHC fragment
+1917    are received and the Inactivity Timer expires, the SCHC fragment
+1918    receiver aborts the on-going SCHC fragmented packet transmission by
+1919    transmitting the Receiver-Abort data unit.
+1920
+1921    Any SCHC fragment not belonging to the current window is discarded.
+1922    The actual SCHC fragment number is computed based on the FCN value.
+1923    When an All-0 fragment is received and all SCHC fragments have been
+1924    received, the receiver updates the expected window value and expects
+1925    a new window and waits for the next SCHC fragment.
+1926    If the window value of the next SCHC fragment has not changed, the
+1927    received SCHC fragment is a retransmission.  A receiver that has
+1928    already received an SCHC fragment discard it.  If all SCHC fragments
+1929    of a window (that is not the last one) have been received, the
+1930    receiver does not send an ACK.  While the receiver waits for the next
+1931    window and if the window value is set to the next value, and if an
+1932    All-1 fragment with the next value window arrived the receiver knows
+1933    that the last SCHC fragment of the packet has been sent.  Since the
+1934    last window is not always full, the MIC will be used to detect if all
+1935    SCHC fragments of the window have been received.  A correct MIC check
+1936    indicates the end of the SCHC fragmented packet transmission.  An ACK
+1937    is sent by the SCHC fragment receiver.  In case of an incorrect MIC,
+1938    the receiver waits for SCHC fragments belonging to the same window or
+1939    the expiration of the Inactivity Timer.  The latter will lead the
+1940    receiver to abort the on-going SCHC fragmented packet transmission.
+1941
+1942    If after receiving an All-0 fragment the receiver missed some SCHC
+1943    fragments, the receiver uses an ACK with the encoded Bitmap to ask
+1944    the retransmission of the missing fragments and expect to receive
+1945    SCHC fragments with the actual window.  While waiting the
+1946    retransmission an All-0 empty fragment is received, the receiver
+1947    sends again the ACK with the encoded Bitmap, if the SCHC fragments
+1948    received belongs to another window or an All-1 fragment is received,
+1949    the transmission is aborted by sending a Receiver-Abort fragment.
+1950    Once it has received all the missing fragments it waits for the next
+1951    window fragments.
+1952
+1953
+1954
+1955
+1956
+1965 7.6.  Supporting multiple window sizes
+1966
+1967    For ACK-Always or ACK-on-Error, implementers MAY opt to support a
+1968    single window size or multiple window sizes.  The latter, when
+1969    feasible, may provide performance optimizations.  For example, a
+1970    large window size SHOULD be used for packets that need to be carried
+1971    by a large number of SCHC fragments.  However, when the number of
+1972    SCHC fragments required to carry a packet is low, a smaller window
+1973    size, and thus a shorter Bitmap, MAY be sufficient to provide
+1974    feedback on all SCHC fragments.  If multiple window sizes are
+1975    supported, the Rule ID MAY be used to signal the window size in use
+1976    for a specific packet transmission.
+1977
+1978    Note that the same window size MUST be used for the transmission of
+1979    all SCHC fragments that belong to the same SCHC packet.
+1980
+1981 7.7.  Downlink SCHC fragment transmission
+1982
+1983    In some LPWAN technologies, as part of energy-saving techniques,
+1984    downlink transmission is only possible immediately after an uplink
+1985    transmission.  In order to avoid potentially high delay in the
+1986    downlink transmission of a SCHC fragmented datagram, the SCHC
+1987    fragment receiver MAY perform an uplink transmission as soon as
+1988    possible after reception of a SCHC fragment that is not the last one.
+1989    Such uplink transmission MAY be triggered by the L2 (e.g. an L2 ACK
+1990    sent in response to a SCHC fragment encapsulated in a L2 frame that
+1991    requires an L2 ACK) or it MAY be triggered from an upper layer.
+1992
+1993    For downlink transmission of a SCHC fragmented packet in ACK-Always
+1994    mode, the SCHC fragment receiver MAY support timer-based
+1995    ACKretransmission.  In this mechanism, the SCHC fragment receiver
+1996    initializes and starts a timer (the Inactivity Timer is used) after
+1997    the transmission of an ACK, except when the ACK is sent in response
+1998    to the last SCHC fragment of a packet (All-1 fragment).  In the
+1999    latter case, the SCHC fragment receiver does not start a timer after
+2000    transmission of the ACK.
+2001
+2002    If, after transmission of an ACK that is not an All-1 fragment, and
+2003    before expiration of the corresponding Inactivity timer, the SCHC
+2004    fragment receiver receives a SCHC fragment that belongs to the
+2005    current window (e.g. a missing SCHC fragment from the current window)
+2006    or to the next window, the Inactivity timer for the ACK is stopped.
+2007    However, if the Inactivity timer expires, the ACK is resent and the
+2008    Inactivity timer is reinitialized and restarted.
+2009
+2010    The default initial value for the Inactivity timer, as well as the
+2011    maximum number of retries for a specific ACK, denoted
+2012    MAX_ACK_RETRIES, are not defined in this document, and need to be
+2021    defined in other documents (e.g. technology-specific profiles).  The
+2022    initial value of the Inactivity timer is expected to be greater than
+2023    that of the Retransmission timer, in order to make sure that a
+2024    (buffered) SCHC fragment to be retransmitted can find an opportunity
+2025    for that transmission.
+2026
+2027    When the SCHC fragment sender transmits the All-1 fragment, it starts
+2028    its Retransmission Timer with a large timeout value (e.g. several
+2029    times that of the initial Inactivity timer).  If an ACK is received
+2030    before expiration of this timer, the SCHC fragment sender retransmits
+2031    any lost SCHC fragments reported by the ACK, or if the ACK confirms
+2032    successful reception of all SCHC fragments of the last window, the
+2033    transmission of the SCHC fragmented packet is considered complete.
+2034    If the timer expires, and no ACK has been received since the start of
+2035    the timer, the SCHC fragment sender assumes that the All-1 fragment
+2036    has been successfully received (and possibly, the last ACK has been
+2037    lost: this mechanism assumes that the retransmission timer for the
+2038    All-1 fragment is long enough to allow several ACK retries if the
+2039    All-1 fragment has not been received by the SCHC fragment receiver,
+2040    and it also assumes that it is unlikely that several ACKs become all
+2041    lost).
+2042
+2043 8.  Padding management
+2044
+2045    Default padding is defined for L2 frame with a variable length of
+2046    bytes.  Padding is done twice, after compression and in the all-1
+2047    fragmentation.
+2048
+2049    In compression, the rule and the compression residues are not aligned
+2050    on a byte, but payload following the residue is always a multiple of
+2051    8 bits.  In that case, padding bits can be added after the payload to
+2052    reach the first byte boundary.  Since the rule and the residue give
+2053    the length of the SCHC header and payload is always a multiple of 8
+2054    bits, the receiver can without ambiguity remove the padding bits
+2055    which never excide 7 bits.
+2056
+2057    SCHC fragmentation works on a byte aligned (i.e. padded SCHC packet).
+2058    Fragmentation header may not be aligned on byte boundary, but each
+2059    fragment except the last one (All-1 fragment) must sent the maximum
+2060    bits as possible.  Only the last fragment need to introduce padding
+2061    to reach the next boundary limit.  Since the SCHC is known to be a
+2062    multiple of 8 bits, the receiver can remove the extra bit to reach
+2063    this limit.
+2064
+2065    Default padding mechanism do not need to send the padding length and
+2066    can lead to a maximum of 14 bits of padding.
+2067
+2068
+2077 9.  SCHC Compression for IPv6 and UDP headers
+2078
+2079    This section lists the different IPv6 and UDP header fields and how
+2080    they can be compressed.
+2081
+2082 9.1.  IPv6 version field
+2083
+2084    This field always holds the same value.  Therefore, in the rule, TV
+2085    is set to 6, MO to "equal" and CDA to "not-sent".
+2086
+2087 9.2.  IPv6 Traffic class field
+2088
+2089    If the DiffServ field does not vary and is known by both sides, the
+2090    Field Descriptor in the rule SHOULD contain a TV with this well-known
+2091    value, an "equal" MO and a "not-sent" CDA.
+2092
+2093    Otherwise, two possibilities can be considered depending on the
+2094    variability of the value:
+2095
+2096    o  One possibility is to not compress the field and send the original
+2097       value.  In the rule, TV is not set to any particular value, MO is
+2098       set to "ignore" and CDA is set to "value-sent".
+2099
+2100    o  If some upper bits in the field are constant and known, a better
+2101       option is to only send the LSBs.  In the rule, TV is set to a
+2102       value with the stable known upper part, MO is set to MSB(x) and
+2103       CDA to LSB(y).
+2104
+2105 9.3.  Flow label field
+2106
+2107    If the Flow Label field does not vary and is known by both sides, the
+2108    Field Descriptor in the rule SHOULD contain a TV with this well-known
+2109    value, an "equal" MO and a "not-sent" CDA.
+2110
+2111    Otherwise, two possibilities can be considered:
+2112
+2113    o  One possibility is to not compress the field and send the original
+2114       value.  In the rule, TV is not set to any particular value, MO is
+2115       set to "ignore" and CDA is set to "value-sent".
+2116
+2117    o  If some upper bits in the field are constant and known, a better
+2118       option is to only send the LSBs.  In the rule, TV is set to a
+2119       value with the stable known upper part, MO is set to MSB(x) and
+2120       CDA to LSB(y).
+2121
+2122
+2123
+2124
+2133 9.4.  Payload Length field
+2134
+2135    This field can be elided for the transmission on the LPWAN network.
+2136    The SCHC C/D recomputes the original payload length value.  In the
+2137    Field Descriptor, TV is not set, MO is set to "ignore" and CDA is
+2138    "compute-IPv6-length".
+2139
+2140    If the payload length needs to be sent and does not need to be coded
+2141    in 16 bits, the TV can be set to 0x0000, the MO set to MSB(16-s)
+2142    where 's' is the number of bits to code the maximum length, and CDA
+2143    is set to LSB(s).
+2144
+2145 9.5.  Next Header field
+2146
+2147    If the Next Header field does not vary and is known by both sides,
+2148    the Field Descriptor in the rule SHOULD contain a TV with this Next
+2149    Header value, the MO SHOULD be "equal" and the CDA SHOULD be "not-
+2150    sent".
+2151
+2152    Otherwise, TV is not set in the Field Descriptor, MO is set to
+2153    "ignore" and CDA is set to "value-sent".  Alternatively, a matching-
+2154    list MAY also be used.
+2155
+2156 9.6.  Hop Limit field
+2157
+2158    The field behavior for this field is different for Uplink and
+2159    Downlink.  In Uplink, since there is no IP forwarding between the Dev
+2160    and the SCHC C/D, the value is relatively constant.  On the other
+2161    hand, the Downlink value depends of Internet routing and MAY change
+2162    more frequently.  One neat way of processing this field is to use the
+2163    Direction Indicator (DI) to distinguish both directions:
+2164
+2165    o  in the Uplink, elide the field: the TV in the Field Descriptor is
+2166       set to the known constant value, the MO is set to "equal" and the
+2167       CDA is set to "not-sent".
+2168
+2169    o  in the Downlink, send the value: TV is not set, MO is set to
+2170       "ignore" and CDA is set to "value-sent".
+2171
+2172 9.7.  IPv6 addresses fields
+2173
+2174    As in 6LoWPAN [RFC4944], IPv6 addresses are split into two 64-bit
+2175    long fields; one for the prefix and one for the Interface Identifier
+2176    (IID).  These fields SHOULD be compressed.  To allow for a single
+2177    rule being used for both directions, these values are identified by
+2178    their role (DEV or APP) and not by their position in the frame
+2179    (source or destination).
+2180
+2189 9.7.1.  IPv6 source and destination prefixes
+2190
+2191    Both ends MUST be synchronized with the appropriate prefixes.  For a
+2192    specific flow, the source and destination prefixes can be unique and
+2193    stored in the context.  It can be either a link-local prefix or a
+2194    global prefix.  In that case, the TV for the source and destination
+2195    prefixes contain the values, the MO is set to "equal" and the CDA is
+2196    set to "not-sent".
+2197
+2198    If the rule is intended to compress packets with different prefix
+2199    values, match-mapping SHOULD be used.  The different prefixes are
+2200    listed in the TV, the MO is set to "match-mapping" and the CDA is set
+2201    to "mapping-sent".  See Figure 25
+2202
+2203    Otherwise, the TV contains the prefix, the MO is set to "equal" and
+2204    the CDA is set to "value-sent".
+2205
+2206 9.7.2.  IPv6 source and destination IID
+2207
+2208    If the DEV or APP IID are based on an LPWAN address, then the IID can
+2209    be reconstructed with information coming from the LPWAN header.  In
+2210    that case, the TV is not set, the MO is set to "ignore" and the CDA
+2211    is set to "DEViid" or "APPiid".  Note that the LPWAN technology
+2212    generally carries a single identifier corresponding to the DEV.
+2213    Therefore Appiid cannot be used.
+2214
+2215    For privacy reasons or if the DEV address is changing over time, a
+2216    static value that is not equal to the DEV address SHOULD be used.  In
+2217    that case, the TV contains the static value, the MO operator is set
+2218    to "equal" and the CDF is set to "not-sent".  [RFC7217] provides some
+2219    methods that MAY be used to derive this static identifier.
+2220
+2221    If several IIDs are possible, then the TV contains the list of
+2222    possible IIDs, the MO is set to "match-mapping" and the CDA is set to
+2223    "mapping-sent".
+2224
+2225    It MAY also happen that the IID variability only expresses itself on
+2226    a few bytes.  In that case, the TV is set to the stable part of the
+2227    IID, the MO is set to "MSB" and the CDA is set to "LSB".
+2228
+2229    Finally, the IID can be sent in extenso on the LPWAN.  In that case,
+2230    the TV is not set, the MO is set to "ignore" and the CDA is set to
+2231    "value-sent".
+2232
+2233
+2234
+2235
+2236
+2245 9.8.  IPv6 extensions
+2246
+2247    No rule is currently defined that processes IPv6 extensions.  If such
+2248    extensions are needed, their compression/decompression rules can be
+2249    based on the MOs and CDAs described above.
+2250
+2251 9.9.  UDP source and destination port
+2252
+2253    To allow for a single rule being used for both directions, the UDP
+2254    port values are identified by their role (DEV or APP) and not by
+2255    their position in the frame (source or destination).  The SCHC C/D
+2256    MUST be aware of the traffic direction (Uplink, Downlink) to select
+2257    the appropriate field.  The following rules apply for DEV and APP
+2258    port numbers.
+2259
+2260    If both ends know the port number, it can be elided.  The TV contains
+2261    the port number, the MO is set to "equal" and the CDA is set to "not-
+2262    sent".
+2263
+2264    If the port variation is on few bits, the TV contains the stable part
+2265    of the port number, the MO is set to "MSB" and the CDA is set to
+2266    "LSB".
+2267
+2268    If some well-known values are used, the TV can contain the list of
+2269    these values, the MO is set to "match-mapping" and the CDA is set to
+2270    "mapping-sent".
+2271
+2272    Otherwise the port numbers are sent over the LPWAN.  The TV is not
+2273    set, the MO is set to "ignore" and the CDA is set to "value-sent".
+2274
+2275 9.10.  UDP length field
+2276
+2277    The UDP length can be computed from the received data.  In that case,
+2278    the TV is not set, the MO is set to "ignore" and the CDA is set to
+2279    "compute-length".
+2280
+2281    If the payload is small, the TV can be set to 0x0000, the MO set to
+2282    "MSB" and the CDA to "LSB".
+2283
+2284    In other cases, the length SHOULD be sent and the CDA is replaced by
+2285    "value-sent".
+2286
+2287 9.11.  UDP Checksum field
+2288
+2289    IPv6 mandates a checksum in the protocol above IP.  Nevertheless, if
+2290    a more efficient mechanism such as L2 CRC or MIC is carried by or
+2291    over the L2 (such as in the LPWAN SCHC fragmentation process (see
+2292    Section 7)), the UDP checksum transmission can be avoided.  In that
+2301    case, the TV is not set, the MO is set to "ignore" and the CDA is set
+2302    to "compute-checksum".
+2303
+2304    In other cases, the checksum SHOULD be explicitly sent.  The TV is
+2305    not set, the MO is set to "ignore" and the CDF is set to "value-
+2306    sent".
+2307
+2308 10.  Security considerations
+2309
+2310 10.1.  Security considerations for header compression
+2311
+2312    A malicious header compression could cause the reconstruction of a
+2313    wrong packet that does not match with the original one.  Such a
+2314    corruption MAY be detected with end-to-end authentication and
+2315    integrity mechanisms.  Header Compression does not add more security
+2316    problem than what is already needed in a transmission.  For instance,
+2317    to avoid an attack, never re-construct a packet bigger than some
+2318    configured size (with 1500 bytes as generic default).
+2319
+2320 10.2.  Security considerations for SCHC fragmentation
+2321
+2322    This subsection describes potential attacks to LPWAN SCHC
+2323    fragmentation and suggests possible countermeasures.
+2324
+2325    A node can perform a buffer reservation attack by sending a first
+2326    SCHC fragment to a target.  Then, the receiver will reserve buffer
+2327    space for the IPv6 packet.  Other incoming SCHC fragmented packets
+2328    will be dropped while the reassembly buffer is occupied during the
+2329    reassembly timeout.  Once that timeout expires, the attacker can
+2330    repeat the same procedure, and iterate, thus creating a denial of
+2331    service attack.  The (low) cost to mount this attack is linear with
+2332    the number of buffers at the target node.  However, the cost for an
+2333    attacker can be increased if individual SCHC fragments of multiple
+2334    packets can be stored in the reassembly buffer.  To further increase
+2335    the attack cost, the reassembly buffer can be splitted into SCHC
+2336    fragment-sized buffer slots.  Once a packet is complete, it is
+2337    processed normally.  If buffer overload occurs, a receiver can
+2338    discard packets based on the sender behavior, which MAY help identify
+2339    which SCHC fragments have been sent by an attacker.
+2340
+2341    In another type of attack, the malicious node is required to have
+2342    overhearing capabilities.  If an attacker can overhear a SCHC
+2343    fragment, it can send a spoofed duplicate (e.g. with random payload)
+2344    to the destination.  If the LPWAN technology does not support
+2345    suitable protection (e.g. source authentication and frame counters to
+2346    prevent replay attacks), a receiver cannot distinguish legitimate
+2347    from spoofed SCHC fragments.  Therefore, the original IPv6 packet
+2348    will be considered corrupt and will be dropped.  To protect resource-
+2357    constrained nodes from this attack, it has been proposed to establish
+2358    a binding among the SCHC fragments to be transmitted by a node, by
+2359    applying content-chaining to the different SCHC fragments, based on
+2360    cryptographic hash functionality.  The aim of this technique is to
+2361    allow a receiver to identify illegitimate SCHC fragments.
+2362
+2363    Further attacks MAY involve sending overlapped fragments (i.e.
+2364    comprising some overlapping parts of the original IPv6 datagram).
+2365    Implementers SHOULD make sure that the correct operation is not
+2366    affected by such event.
+2367
+2368    In Window mode - ACK on error, a malicious node MAY force a SCHC
+2369    fragment sender to resend a SCHC fragment a number of times, with the
+2370    aim to increase consumption of the SCHC fragment sender's resources.
+2371    To this end, the malicious node MAY repeatedly send a fake ACK to the
+2372    SCHC fragment sender, with a Bitmap that reports that one or more
+2373    SCHC fragments have been lost.  In order to mitigate this possible
+2374    attack, MAX_ACK_RETRIES MAY be set to a safe value which allows to
+2375    limit the maximum damage of the attack to an acceptable extent.
+2376    However, note that a high setting for MAX_ACK_RETRIES benefits SCHC
+2377    fragment reliability modes, therefore the trade-off needs to be
+2378    carefully considered.
+2379
+2380 11.  Acknowledgements
+2381
+2382    Thanks to Dominique Barthel, Carsten Bormann, Philippe Clavier,
+2383    Eduardo Ingles Sanchez, Arunprabhu Kandasamy, Rahul Jadhav, Sergio
+2384    Lopez Bernal, Antony Markovski, Alexander Pelov, Pascal Thubert, Juan
+2385    Carlos Zuniga, Diego Dujovne, Edgar Ramos, and Shoichi Sakane for
+2386    useful design consideration and comments.
+2387
+2388 12.  References
+2389
+2390 12.1.  Normative References
+2391
+2392    [RFC2460]  Deering, S. and R. Hinden, "Internet Protocol, Version 6
+2393               (IPv6) Specification", RFC 2460, DOI 10.17487/RFC2460,
+2394               December 1998, <https://www.rfc-editor.org/info/rfc2460>.
+2395
+2396    [RFC3385]  Sheinwald, D., Satran, J., Thaler, P., and V. Cavanna,
+2397               "Internet Protocol Small Computer System Interface (iSCSI)
+2398               Cyclic Redundancy Check (CRC)/Checksum Considerations",
+2399               RFC 3385, DOI 10.17487/RFC3385, September 2002,
+2400               <https://www.rfc-editor.org/info/rfc3385>.
+2401
+2402
+2403
+2404
+2413    [RFC4944]  Montenegro, G., Kushalnagar, N., Hui, J., and D. Culler,
+2414               "Transmission of IPv6 Packets over IEEE 802.15.4
+2415               Networks", RFC 4944, DOI 10.17487/RFC4944, September 2007,
+2416               <https://www.rfc-editor.org/info/rfc4944>.
+2417
+2418    [RFC5795]  Sandlund, K., Pelletier, G., and L-E. Jonsson, "The RObust
+2419               Header Compression (ROHC) Framework", RFC 5795,
+2420               DOI 10.17487/RFC5795, March 2010,
+2421               <https://www.rfc-editor.org/info/rfc5795>.
+2422
+2423    [RFC7136]  Carpenter, B. and S. Jiang, "Significance of IPv6
+2424               Interface Identifiers", RFC 7136, DOI 10.17487/RFC7136,
+2425               February 2014, <https://www.rfc-editor.org/info/rfc7136>.
+2426
+2427    [RFC7217]  Gont, F., "A Method for Generating Semantically Opaque
+2428               Interface Identifiers with IPv6 Stateless Address
+2429               Autoconfiguration (SLAAC)", RFC 7217,
+2430               DOI 10.17487/RFC7217, April 2014,
+2431               <https://www.rfc-editor.org/info/rfc7217>.
+2432
+2433 12.2.  Informative References
+2434
+2435    [I-D.ietf-lpwan-overview]
+2436               Farrell, S., "LPWAN Overview", draft-ietf-lpwan-
+2437               overview-10 (work in progress), February 2018.
+2438
+2439 Appendix A.  SCHC Compression Examples
+2440
+2441    This section gives some scenarios of the compression mechanism for
+2442    IPv6/UDP.  The goal is to illustrate the behavior of SCHC.
+2443
+2444    The most common case using the mechanisms defined in this document
+2445    will be a LPWAN Dev that embeds some applications running over CoAP.
+2446    In this example, three flows are considered.  The first flow is for
+2447    the device management based on CoAP using Link Local IPv6 addresses
+2448    and UDP ports 123 and 124 for Dev and App, respectively.  The second
+2449    flow will be a CoAP server for measurements done by the Device (using
+2450    ports 5683) and Global IPv6 Address prefixes alpha::IID/64 to
+2451    beta::1/64.  The last flow is for legacy applications using different
+2452    ports numbers, the destination IPv6 address prefix is gamma::1/64.
+2453
+2454    Figure 24 presents the protocol stack for this Device.  IPv6 and UDP
+2455    are represented with dotted lines since these protocols are
+2456    compressed on the radio link.
+2457
+2458
+2459
+2460
+2469     Management   Data
+2470    +----------+---------+---------+
+2471    |   CoAP   |  CoAP   | legacy  |
+2472    +----||----+---||----+---||----+
+2473    .   UDP    .  UDP    |   UDP   |
+2474    ................................
+2475    .   IPv6   .  IPv6   .  IPv6   .
+2476    +------------------------------+
+2477    |    SCHC Header compression   |
+2478    |      and fragmentation       |
+2479    +------------------------------+
+2480    |      LPWAN L2 technologies   |
+2481    +------------------------------+
+2482             DEV or NGW
+2483
+2484
+2485               Figure 24: Simplified Protocol Stack for LP-WAN
+2486
+2487    Note that in some LPWAN technologies, only the Devs have a device ID.
+2488    Therefore, when such technologies are used, it is necessary to
+2489    statically define an IID for the Link Local address for the SCHC C/D.
+2490
+2491    Rule 0
+2492     +----------------+--+--+--+---------+--------+------------++------+
+2493     | Field          |FL|FP|DI| Value   | Match  | Comp Decomp|| Sent |
+2494     |                |  |  |  |         | Opera. | Action     ||[bits]|
+2495     +----------------+--+--+--+---------+---------------------++------+
+2496     |IPv6 version    |4 |1 |Bi|6        | equal  | not-sent   ||      |
+2497     |IPv6 DiffServ   |8 |1 |Bi|0        | equal  | not-sent   ||      |
+2498     |IPv6 Flow Label |20|1 |Bi|0        | equal  | not-sent   ||      |
+2499     |IPv6 Length     |16|1 |Bi|         | ignore | comp-length||      |
+2500     |IPv6 Next Header|8 |1 |Bi|17       | equal  | not-sent   ||      |
+2501     |IPv6 Hop Limit  |8 |1 |Bi|255      | ignore | not-sent   ||      |
+2502     |IPv6 DEVprefix  |64|1 |Bi|FE80::/64| equal  | not-sent   ||      |
+2503     |IPv6 DEViid     |64|1 |Bi|         | ignore | DEViid     ||      |
+2504     |IPv6 APPprefix  |64|1 |Bi|FE80::/64| equal  | not-sent   ||      |
+2505     |IPv6 APPiid     |64|1 |Bi|::1      | equal  | not-sent   ||      |
+2506     +================+==+==+==+=========+========+============++======+
+2507     |UDP DEVport     |16|1 |Bi|123      | equal  | not-sent   ||      |
+2508     |UDP APPport     |16|1 |Bi|124      | equal  | not-sent   ||      |
+2509     |UDP Length      |16|1 |Bi|         | ignore | comp-length||      |
+2510     |UDP checksum    |16|1 |Bi|         | ignore | comp-chk   ||      |
+2511     +================+==+==+==+=========+========+============++======+
+2512
+2513     Rule 1
+2514     +----------------+--+--+--+---------+--------+------------++------+
+2515     | Field          |FL|FP|DI| Value   | Match  | Action     || Sent |
+2516     |                |  |  |  |         | Opera. | Action     ||[bits]|
+2525     +----------------+--+--+--+---------+--------+------------++------+
+2526     |IPv6 version    |4 |1 |Bi|6        | equal  | not-sent   ||      |
+2527     |IPv6 DiffServ   |8 |1 |Bi|0        | equal  | not-sent   ||      |
+2528     |IPv6 Flow Label |20|1 |Bi|0        | equal  | not-sent   ||      |
+2529     |IPv6 Length     |16|1 |Bi|         | ignore | comp-length||      |
+2530     |IPv6 Next Header|8 |1 |Bi|17       | equal  | not-sent   ||      |
+2531     |IPv6 Hop Limit  |8 |1 |Bi|255      | ignore | not-sent   ||      |
+2532     |IPv6 DEVprefix  |64|1 |Bi|[alpha/64, match- |mapping-sent||  [1] |
+2533     |                |  |  |  |fe80::/64] mapping|            ||      |
+2534     |IPv6 DEViid     |64|1 |Bi|         | ignore | DEViid     ||      |
+2535     |IPv6 APPprefix  |64|1 |Bi|[beta/64,| match- |mapping-sent||  [2] |
+2536     |                |  |  |  |alpha/64,| mapping|            ||      |
+2537     |                |  |  |  |fe80::64]|        |            ||      |
+2538     |IPv6 APPiid     |64|1 |Bi|::1000   | equal  | not-sent   ||      |
+2539     +================+==+==+==+=========+========+============++======+
+2540     |UDP DEVport     |16|1 |Bi|5683     | equal  | not-sent   ||      |
+2541     |UDP APPport     |16|1 |Bi|5683     | equal  | not-sent   ||      |
+2542     |UDP Length      |16|1 |Bi|         | ignore | comp-length||      |
+2543     |UDP checksum    |16|1 |Bi|         | ignore | comp-chk   ||      |
+2544     +================+==+==+==+=========+========+============++======+
+2545
+2546     Rule 2
+2547     +----------------+--+--+--+---------+--------+------------++------+
+2548     | Field          |FL|FP|DI| Value   | Match  | Action     || Sent |
+2549     |                |  |  |  |         | Opera. | Action     ||[bits]|
+2550     +----------------+--+--+--+---------+--------+------------++------+
+2551     |IPv6 version    |4 |1 |Bi|6        | equal  | not-sent   ||      |
+2552     |IPv6 DiffServ   |8 |1 |Bi|0        | equal  | not-sent   ||      |
+2553     |IPv6 Flow Label |20|1 |Bi|0        | equal  | not-sent   ||      |
+2554     |IPv6 Length     |16|1 |Bi|         | ignore | comp-length||      |
+2555     |IPv6 Next Header|8 |1 |Bi|17       | equal  | not-sent   ||      |
+2556     |IPv6 Hop Limit  |8 |1 |Up|255      | ignore | not-sent   ||      |
+2557     |IPv6 Hop Limit  |8 |1 |Dw|         | ignore | value-sent ||  [8] |
+2558     |IPv6 DEVprefix  |64|1 |Bi|alpha/64 | equal  | not-sent   ||      |
+2559     |IPv6 DEViid     |64|1 |Bi|         | ignore | DEViid     ||      |
+2560     |IPv6 APPprefix  |64|1 |Bi|gamma/64 | equal  | not-sent   ||      |
+2561     |IPv6 APPiid     |64|1 |Bi|::1000   | equal  | not-sent   ||      |
+2562     +================+==+==+==+=========+========+============++======+
+2563     |UDP DEVport     |16|1 |Bi|8720     | MSB(12)| LSB(4)     || [4]  |
+2564     |UDP APPport     |16|1 |Bi|8720     | MSB(12)| LSB(4)     || [4]  |
+2565     |UDP Length      |16|1 |Bi|         | ignore | comp-length||      |
+2566     |UDP checksum    |16|1 |Bi|         | ignore | comp-chk   ||      |
+2567     +================+==+==+==+=========+========+============++======+
+2568
+2569
+2570
+2571                          Figure 25: Context rules
+2572
+2581    All the fields described in the three rules depicted on Figure 25 are
+2582    present in the IPv6 and UDP headers.  The DEViid-DID value is found
+2583    in the L2 header.
+2584
+2585    The second and third rules use global addresses.  The way the Dev
+2586    learns the prefix is not in the scope of the document.
+2587
+2588    The third rule compresses port numbers to 4 bits.
+2589
+2590 Appendix B.  Fragmentation Examples
+2591
+2592    This section provides examples for the different fragment reliability
+2593    modes specified in this document.
+2594
+2595    Figure 26 illustrates the transmission in No-ACK mode of an IPv6
+2596    packet that needs 11 fragments.  FCN is 1 bit wide.
+2597
+2598            Sender               Receiver
+2599              |-------FCN=0-------->|
+2600              |-------FCN=0-------->|
+2601              |-------FCN=0-------->|
+2602              |-------FCN=0-------->|
+2603              |-------FCN=0-------->|
+2604              |-------FCN=0-------->|
+2605              |-------FCN=0-------->|
+2606              |-------FCN=0-------->|
+2607              |-------FCN=0-------->|
+2608              |-------FCN=0-------->|
+2609              |-----FCN=1 + MIC --->|MIC checked: success =>
+2610
+2611
+2612     Figure 26: Transmission in No-ACK mode of an IPv6 packet carried by
+2613                                11 fragments
+2614
+2615    In the following examples, N (i.e. the size if the FCN field) is 3
+2616    bits.  Therefore, the All-1 FCN value is 7.
+2617
+2618    Figure 27 illustrates the transmission in ACK-on-Error of an IPv6
+2619    packet that needs 11 fragments, with MAX_WIND_FCN=6 and no fragment
+2620    loss.
+2621
+2622
+2623
+2624
+2625
+2626
+2627
+2628
+2637            Sender               Receiver
+2638              |-----W=0, FCN=6----->|
+2639              |-----W=0, FCN=5----->|
+2640              |-----W=0, FCN=4----->|
+2641              |-----W=0, FCN=3----->|
+2642              |-----W=0, FCN=2----->|
+2643              |-----W=0, FCN=1----->|
+2644              |-----W=0, FCN=0----->|
+2645          (no ACK)
+2646              |-----W=1, FCN=6----->|
+2647              |-----W=1, FCN=5----->|
+2648              |-----W=1, FCN=4----->|
+2649              |--W=1, FCN=7 + MIC-->|MIC checked: success =>
+2650              |<---- ACK, W=1 ------|
+2651
+2652
+2653       Figure 27: Transmission in ACK-on-Error mode of an IPv6 packet
+2654          carried by 11 fragments, with MAX_WIND_FCN=6 and no loss.
+2655
+2656    Figure 28 illustrates the transmission in ACK-on-Error mode of an
+2657    IPv6 packet that needs 11 fragments, with MAX_WIND_FCN=6 and three
+2658    lost fragments.
+2659
+2660             Sender             Receiver
+2661              |-----W=0, FCN=6----->|
+2662              |-----W=0, FCN=5----->|
+2663              |-----W=0, FCN=4--X-->|
+2664              |-----W=0, FCN=3----->|
+2665              |-----W=0, FCN=2--X-->|             7
+2666              |-----W=0, FCN=1----->|             /
+2667              |-----W=0, FCN=0----->|       6543210
+2668              |<-----ACK, W=0-------|Bitmap:1101011
+2669              |-----W=0, FCN=4----->|
+2670              |-----W=0, FCN=2----->|
+2671          (no ACK)
+2672              |-----W=1, FCN=6----->|
+2673              |-----W=1, FCN=5----->|
+2674              |-----W=1, FCN=4--X-->|
+2675              |- W=1, FCN=7 + MIC ->|MIC checked: failed
+2676              |<-----ACK, W=1-------|C=0 Bitmap:1100001
+2677              |-----W=1, FCN=4----->|MIC checked: success =>
+2678              |<---- ACK, W=1 ------|C=1, no Bitmap
+2679
+2680
+2681       Figure 28: Transmission in ACK-on-Error mode of an IPv6 packet
+2682         carried by 11 fragments, with MAX_WIND_FCN=6 and three lost
+2683                                 fragments.
+2684
+2693    Figure 29 illustrates the transmission in ACK-Always mode of an IPv6
+2694    packet that needs 11 fragments, with MAX_WIND_FCN=6 and no loss.
+2695
+2696            Sender               Receiver
+2697              |-----W=0, FCN=6----->|
+2698              |-----W=0, FCN=5----->|
+2699              |-----W=0, FCN=4----->|
+2700              |-----W=0, FCN=3----->|
+2701              |-----W=0, FCN=2----->|
+2702              |-----W=0, FCN=1----->|
+2703              |-----W=0, FCN=0----->|
+2704              |<-----ACK, W=0-------| Bitmap:1111111
+2705              |-----W=1, FCN=6----->|
+2706              |-----W=1, FCN=5----->|
+2707              |-----W=1, FCN=4----->|
+2708              |--W=1, FCN=7 + MIC-->|MIC checked: success =>
+2709              |<-----ACK, W=1-------| C=1 no Bitmap
+2710            (End)
+2711
+2712
+2713    Figure 29: Transmission in ACK-Always mode of an IPv6 packet carried
+2714         by 11 fragments, with MAX_WIND_FCN=6 and no lost fragment.
+2715
+2716    Figure 30 illustrates the transmission in ACK-Always mode of an IPv6
+2717    packet that needs 11 fragments, with MAX_WIND_FCN=6 and three lost
+2718    fragments.
+2719
+2720
+2721
+2722
+2723
+2724
+2725
+2726
+2727
+2728
+2729
+2730
+2731
+2732
+2733
+2734
+2735
+2736
+2737
+2738
+2739
+2740
+2749            Sender               Receiver
+2750              |-----W=1, FCN=6----->|
+2751              |-----W=1, FCN=5----->|
+2752              |-----W=1, FCN=4--X-->|
+2753              |-----W=1, FCN=3----->|
+2754              |-----W=1, FCN=2--X-->|             7
+2755              |-----W=1, FCN=1----->|             /
+2756              |-----W=1, FCN=0----->|       6543210
+2757              |<-----ACK, W=1-------|Bitmap:1101011
+2758              |-----W=1, FCN=4----->|
+2759              |-----W=1, FCN=2----->|
+2760              |<-----ACK, W=1-------|Bitmap:
+2761              |-----W=0, FCN=6----->|
+2762              |-----W=0, FCN=5----->|
+2763              |-----W=0, FCN=4--X-->|
+2764              |--W=0, FCN=7 + MIC-->|MIC checked: failed
+2765              |<-----ACK, W=0-------| C= 0 Bitmap:11000001
+2766              |-----W=0, FCN=4----->|MIC checked: success =>
+2767              |<-----ACK, W=0-------| C= 1 no Bitmap
+2768            (End)
+2769
+2770
+2771    Figure 30: Transmission in ACK-Always mode of an IPv6 packet carried
+2772       by 11 fragments, with MAX_WIND_FCN=6 and three lost fragments.
+2773
+2774    Figure 31 illustrates the transmission in ACK-Always mode of an IPv6
+2775    packet that needs 6 fragments, with MAX_WIND_FCN=6, three lost
+2776    fragments and only one retry needed to recover each lost fragment.
+2777
+2778              Sender                Receiver
+2779                 |-----W=0, FCN=6----->|
+2780                 |-----W=0, FCN=5----->|
+2781                 |-----W=0, FCN=4--X-->|
+2782                 |-----W=0, FCN=3--X-->|
+2783                 |-----W=0, FCN=2--X-->|
+2784                 |--W=0, FCN=7 + MIC-->|MIC checked: failed
+2785                 |<-----ACK, W=0-------|C= 0 Bitmap:1100001
+2786                 |-----W=0, FCN=4----->|MIC checked: failed
+2787                 |-----W=0, FCN=3----->|MIC checked: failed
+2788                 |-----W=0, FCN=2----->|MIC checked: success
+2789                 |<-----ACK, W=0-------|C=1 no Bitmap
+2790               (End)
+2791
+2792    Figure 31: Transmission in ACK-Always mode of an IPv6 packet carried
+2793     by 11 fragments, with MAX_WIND_FCN=6, three lost framents and only
+2794                  one retry needed for each lost fragment.
+2795
+2796
+2805    Figure 32 illustrates the transmission in ACK-Always mode of an IPv6
+2806    packet that needs 6 fragments, with MAX_WIND_FCN=6, three lost
+2807    fragments, and the second ACK lost.
+2808
+2809              Sender                Receiver
+2810                 |-----W=0, FCN=6----->|
+2811                 |-----W=0, FCN=5----->|
+2812                 |-----W=0, FCN=4--X-->|
+2813                 |-----W=0, FCN=3--X-->|
+2814                 |-----W=0, FCN=2--X-->|
+2815                 |--W=0, FCN=7 + MIC-->|MIC checked: failed
+2816                 |<-----ACK, W=0-------|C=0  Bitmap:1100001
+2817                 |-----W=0, FCN=4----->|MIC checked: failed
+2818                 |-----W=0, FCN=3----->|MIC checked: failed
+2819                 |-----W=0, FCN=2----->|MIC checked: success
+2820                 |  X---ACK, W=0-------|C= 1 no Bitmap
+2821        timeout  |                     |
+2822                 |--W=0, FCN=7 + MIC-->|
+2823                 |<-----ACK, W=0-------|C= 1 no Bitmap
+2824
+2825               (End)
+2826
+2827    Figure 32: Transmission in ACK-Always mode of an IPv6 packet carried
+2828     by 11 fragments, with MAX_WIND_FCN=6, three lost fragments, and the
+2829                              second ACK lost.
+2830
+2831    Figure 33 illustrates the transmission in ACK-Always mode of an IPv6
+2832    packet that needs 6 fragments, with MAX_WIND_FCN=6, with three lost
+2833    fragments, and one retransmitted fragment lost again.
+2834
+2835
+2836
+2837
+2838
+2839
+2840
+2841
+2842
+2843
+2844
+2845
+2846
+2847
+2848
+2849
+2850
+2851
+2852
+2861               Sender                Receiver
+2862                 |-----W=0, FCN=6----->|
+2863                 |-----W=0, FCN=5----->|
+2864                 |-----W=0, FCN=4--X-->|
+2865                 |-----W=0, FCN=3--X-->|
+2866                 |-----W=0, FCN=2--X-->|
+2867                 |--W=0, FCN=7 + MIC-->|MIC checked: failed
+2868                 |<-----ACK, W=0-------|C=0 Bitmap:1100001
+2869                 |-----W=0, FCN=4----->|MIC checked: failed
+2870                 |-----W=0, FCN=3----->|MIC checked: failed
+2871                 |-----W=0, FCN=2--X-->|
+2872          timeout|                     |
+2873                 |--W=0, FCN=7 + MIC-->|All-0 empty
+2874                 |<-----ACK, W=0-------|C=0 Bitmap: 1111101
+2875                 |-----W=0, FCN=2----->|MIC checked: success
+2876                 |<-----ACK, W=0-------|C=1 no Bitmap
+2877               (End)
+2878
+2879    Figure 33: Transmission in ACK-Always mode of an IPv6 packet carried
+2880    by 11 fragments, with MAX_WIND_FCN=6, with three lost fragments, and
+2881                   one retransmitted fragment lost again.
+2882
+2883    Figure 34 illustrates the transmission in ACK-Always mode of an IPv6
+2884    packet that needs 28 fragments, with N=5, MAX_WIND_FCN=23 and two
+2885    lost fragments.  Note that MAX_WIND_FCN=23 may be useful when the
+2886    maximum possible Bitmap size, considering the maximum lower layer
+2887    technology payload size and the value of R, is 3 bytes.  Note also
+2888    that the FCN of the last fragment of the packet is the one with
+2889    FCN=31 (i.e.  FCN=2^N-1 for N=5, or equivalently, all FCN bits set to
+2890    1).
+2891
+2892
+2893
+2894
+2895
+2896
+2897
+2898
+2899
+2900
+2901
+2902
+2903
+2904
+2905
+2906
+2907
+2908
+2917          Sender               Receiver
+2918            |-----W=0, FCN=23----->|
+2919            |-----W=0, FCN=22----->|
+2920            |-----W=0, FCN=21--X-->|
+2921            |-----W=0, FCN=20----->|
+2922            |-----W=0, FCN=19----->|
+2923            |-----W=0, FCN=18----->|
+2924            |-----W=0, FCN=17----->|
+2925            |-----W=0, FCN=16----->|
+2926            |-----W=0, FCN=15----->|
+2927            |-----W=0, FCN=14----->|
+2928            |-----W=0, FCN=13----->|
+2929            |-----W=0, FCN=12----->|
+2930            |-----W=0, FCN=11----->|
+2931            |-----W=0, FCN=10--X-->|
+2932            |-----W=0, FCN=9 ----->|
+2933            |-----W=0, FCN=8 ----->|
+2934            |-----W=0, FCN=7 ----->|
+2935            |-----W=0, FCN=6 ----->|
+2936            |-----W=0, FCN=5 ----->|
+2937            |-----W=0, FCN=4 ----->|
+2938            |-----W=0, FCN=3 ----->|
+2939            |-----W=0, FCN=2 ----->|
+2940            |-----W=0, FCN=1 ----->|
+2941            |-----W=0, FCN=0 ----->|
+2942            |                      |lcl-Bitmap:110111111111101111111111
+2943            |<------ACK, W=0-------|encoded Bitmap:1101111111111011
+2944            |-----W=0, FCN=21----->|
+2945            |-----W=0, FCN=10----->|
+2946            |<------ACK, W=0-------|no Bitmap
+2947            |-----W=1, FCN=23----->|
+2948            |-----W=1, FCN=22----->|
+2949            |-----W=1, FCN=21----->|
+2950            |--W=1, FCN=31 + MIC-->|MIC checked: sucess =>
+2951            |<------ACK, W=1-------|no Bitmap
+2952          (End)
+2953
+2954    Figure 34: Transmission in ACK-Always mode of an IPv6 packet carried
+2955     by 28 fragments, with N=5, MAX_WIND_FCN=23 and two lost fragments.
+2956
+2957 Appendix C.  Fragmentation State Machines
+2958
+2959    The fragmentation state machines of the sender and the receiver, one
+2960    for each of the different reliability modes, are described in the
+2961    following figures:
+2962
+2963
+2964
+2973                 +===========+
+2974    +------------+  Init     |
+2975    |  FCN=0     +===========+
+2976    |  No Window
+2977    |  No Bitmap
+2978    |                   +-------+
+2979    |          +========+==+    | More Fragments
+2980    |          |           | <--+ ~~~~~~~~~~~~~~~~~~~~
+2981    +--------> |   Send    |      send Fragment (FCN=0)
+2982               +===+=======+
+2983                   |  last fragment
+2984                   |  ~~~~~~~~~~~~
+2985                   |  FCN = 1
+2986                   v  send fragment+MIC
+2987               +============+
+2988               |    END     |
+2989               +============+
+2990
+2991             Figure 35: Sender State Machine for the No-ACK Mode
+2992
+2993                          +------+ Not All-1
+2994               +==========+=+    | ~~~~~~~~~~~~~~~~~~~
+2995               |            + <--+ set Inactivity Timer
+2996               |  RCV Frag  +-------+
+2997               +=+===+======+       |All-1 &
+2998       All-1 &   |   |              |MIC correct
+2999     MIC wrong   |   |Inactivity    |
+3000                 |   |Timer Exp.    |
+3001                 v   |              |
+3002      +==========++  |              v
+3003      |   Error   |<-+     +========+==+
+3004      +===========+        |    END    |
+3005                           +===========+
+3006
+3007
+3008            Figure 36: Receiver State Machine for the No-ACK Mode
+3009
+3010
+3011
+3012
+3013
+3014
+3015
+3016
+3017
+3018
+3019
+3020
+3029                  +=======+
+3030                  | INIT  |       FCN!=0 & more frags
+3031                  |       |       ~~~~~~~~~~~~~~~~~~~~~~
+3032                  +======++  +--+ send Window + frag(FCN)
+3033                     W=0 |   |  | FCN-
+3034      Clear local Bitmap |   |  v set local Bitmap
+3035           FCN=max value |  ++==+========+
+3036                         +> |            |
+3037    +---------------------> |    SEND    |
+3038    |                       +==+===+=====+
+3039    |      FCN==0 & more frags |   | last frag
+3040    |    ~~~~~~~~~~~~~~~~~~~~~ |   | ~~~~~~~~~~~~~~~
+3041    |         set local-Bitmap |   | set local-Bitmap
+3042    |   send wnd + frag(all-0) |   | send wnd+frag(all-1)+MIC
+3043    |       set Retrans_Timer  |   | set Retrans_Timer
+3044    |                          |   |
+3045    |Recv_wnd == wnd &         |   |
+3046    |Lcl_Bitmap==recv_Bitmap&  |   |  +----------------------+
+3047    |more frag                 |   |  |lcl-Bitmap!=rcv-Bitmap|
+3048    |~~~~~~~~~~~~~~~~~~~~~~    |   |  | ~~~~~~~~~            |
+3049    |Stop Retrans_Timer        |   |  | Attemp++             v
+3050    |clear local_Bitmap        v   v  |                +=====+=+
+3051    |window=next_window   +====+===+==+===+            |Resend |
+3052    +---------------------+               |            |Missing|
+3053                     +----+     Wait      |            |Frag   |
+3054    not expected wnd |    |    Bitmap     |            +=======+
+3055    ~~~~~~~~~~~~~~~~ +--->+               ++Retrans_Timer Exp  |
+3056        discard frag      +==+=+===+=+==+=+| ~~~~~~~~~~~~~~~~~ |
+3057                             | |   | ^  ^  |reSend(empty)All-* |
+3058                             | |   | |  |  |Set Retrans_Timer  |
+3059    MIC_bit==1 &             | |   | |  +--+Attemp++           |
+3060    Recv_window==window &    | |   | +-------------------------+
+3061    Lcl_Bitmap==recv_Bitmap &| |   |   all missing frag sent
+3062                 no more frag| |   |   ~~~~~~~~~~~~~~~~~~~~~~
+3063     ~~~~~~~~~~~~~~~~~~~~~~~~| |   |   Set Retrans_Timer
+3064           Stop Retrans_Timer| |   |
+3065     +=============+         | |   |
+3066     |     END     +<--------+ |   | Attemp > MAX_ACK_REQUESTS
+3067     +=============+           |   | ~~~~~~~~~~~~~~~~~~
+3068                  All-1 Window |   v Send Abort
+3069                  ~~~~~~~~~~~~ | +=+===========+
+3070                 MIC_bit ==0 & +>|    ERROR    |
+3071        Lcl_Bitmap==recv_Bitmap  +=============+
+3072
+3073
+3074
+3075           Figure 37: Sender State Machine for the ACK-Always Mode
+3076
+3085     Not All- & w=expected +---+   +---+w = Not expected
+3086     ~~~~~~~~~~~~~~~~~~~~~ |   |   |   |~~~~~~~~~~~~~~~~
+3087     Set local_Bitmap(FCN) |   v   v   |discard
+3088                          ++===+===+===+=+
+3089    +---------------------+     Rcv      +--->* ABORT
+3090    |  +------------------+   Window     |
+3091    |  |                  +=====+==+=====+
+3092    |  |       All-0 & w=expect |  ^ w =next & not-All
+3093    |  |     ~~~~~~~~~~~~~~~~~~ |  |~~~~~~~~~~~~~~~~~~~~~
+3094    |  |     set lcl_Bitmap(FCN)|  |expected = next window
+3095    |  |      send local_Bitmap |  |Clear local_Bitmap
+3096    |  |                        |  |
+3097    |  | w=expct & not-All      |  |
+3098    |  | ~~~~~~~~~~~~~~~~~~     |  |
+3099    |  | set lcl_Bitmap(FCN)+-+ |  | +--+ w=next & All-0
+3100    |  | if lcl_Bitmap full | | |  | |  | ~~~~~~~~~~~~~~~
+3101    |  | send lcl_Bitmap    | | |  | |  | expct = nxt wnd
+3102    |  |                    v | v  | |  | Clear lcl_Bitmap
+3103    |  |  w=expct & All-1 +=+=+=+==+=++ | set lcl_Bitmap(FCN)
+3104    |  |  ~~~~~~~~~~~  +->+    Wait   +<+ send lcl_Bitmap
+3105    |  |    discard    +--|    Next   |
+3106    |  | All-0  +---------+  Window   +--->* ABORT
+3107    |  | ~~~~~  +-------->+========+=++
+3108    |  | snd lcl_bm  All-1 & w=next| |  All-1 & w=nxt
+3109    |  |                & MIC wrong| |  & MIC right
+3110    |  |          ~~~~~~~~~~~~~~~~~| | ~~~~~~~~~~~~~~~~~~
+3111    |  |      set local_Bitmap(FCN)| |set lcl_Bitmap(FCN)
+3112    |  |          send local_Bitmap| |send local_Bitmap
+3113    |  |                           | +----------------------+
+3114    |  |All-1 & w=expct            |                        |
+3115    |  |& MIC wrong                v   +---+ w=expctd &     |
+3116    |  |~~~~~~~~~~~~~~~~~~~~  +====+=====+ | MIC wrong      |
+3117    |  |set local_Bitmap(FCN) |          +<+ ~~~~~~~~~~~~~~ |
+3118    |  |send local_Bitmap     | Wait End | set lcl_btmp(FCN)|
+3119    |  +--------------------->+          +--->* ABORT       |
+3120    |                         +===+====+=+-+ All-1&MIC wrong|
+3121    |                             |    ^   | ~~~~~~~~~~~~~~~|
+3122    |      w=expected & MIC right |    +---+ send lcl_btmp  |
+3123    |      ~~~~~~~~~~~~~~~~~~~~~~ |                         |
+3124    |       set local_Bitmap(FCN) | +-+ Not All-1           |
+3125    |        send local_Bitmap    | | | ~~~~~~~~~           |
+3126    |                             | | |  discard            |
+3127    |All-1 & w=expctd & MIC right | | |                     |
+3128    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~ v | v +----+All-1         |
+3129    |set local_Bitmap(FCN)      +=+=+=+=+==+ |~~~~~~~~~     |
+3130    |send local_Bitmap          |          +<+Send lcl_btmp |
+3131    +-------------------------->+    END   |                |
+3132                                +==========+<---------------+
+3141           --->* ABORT
+3142                ~~~~~~~
+3143                Inactivity_Timer = expires
+3144            When DWN_Link
+3145              IF Inactivity_Timer expires
+3146                 Send DWL Request
+3147                 Attemp++
+3148
+3149
+3150          Figure 38: Receiver State Machine for the ACK-Always Mode
+3151
+3152
+3153
+3154
+3155
+3156
+3157
+3158
+3159
+3160
+3161
+3162
+3163
+3164
+3165
+3166
+3167
+3168
+3169
+3170
+3171
+3172
+3173
+3174
+3175
+3176
+3177
+3178
+3179
+3180
+3181
+3182
+3183
+3184
+3185
+3186
+3187
+3188
+3197                       +=======+
+3198                       |       |
+3199                       | INIT  |
+3200                       |       |        FCN!=0 & more frags
+3201                       +======++  +--+  ~~~~~~~~~~~~~~~~~~~~~~
+3202                          W=0 |   |  |  send Window + frag(FCN)
+3203           ~~~~~~~~~~~~~~~~~~ |   |  |  FCN-
+3204           Clear local Bitmap |   |  v  set local Bitmap
+3205                FCN=max value |  ++=============+
+3206                              +> |              |
+3207                                 |     SEND     |
+3208     +-------------------------> |              |
+3209     |                           ++=====+=======+
+3210     |         FCN==0 & more frags|     |last frag
+3211     |     ~~~~~~~~~~~~~~~~~~~~~~~|     |~~~~~~~~~~~~~~~~~
+3212     |            set local-Bitmap|     |set local-Bitmap
+3213     |      send wnd + frag(all-0)|     |send wnd+frag(all-1)+MIC
+3214     |           set Retrans_Timer|     |set Retrans_Timer
+3215     |                            |     |
+3216     |Retrans_Timer expires &     |     |   lcl-Bitmap!=rcv-Bitmap
+3217     |more fragments              |     |   ~~~~~~~~~~~~~~~~~~~~~~
+3218     |~~~~~~~~~~~~~~~~~~~~        |     |   Attemp++
+3219     |stop Retrans_Timer          |     |  +-----------------+
+3220     |clear local-Bitmap          v     v  |                 v
+3221     |window = next window  +=====+=====+==+==+         +====+====+
+3222     +----------------------+                 +         | Resend  |
+3223     +--------------------->+    Wait Bitmap  |         | Missing |
+3224     |                  +-- +                 |         | Frag    |
+3225     | not expected wnd |   ++=+===+===+===+==+         +======+==+
+3226     | ~~~~~~~~~~~~~~~~ |    ^ |   |   |   ^                   |
+3227     |    discard frag  +----+ |   |   |   +-------------------+
+3228     |                         |   |   |     all missing frag sent
+3229     |Retrans_Timer expires &  |   |   |     ~~~~~~~~~~~~~~~~~~~~~
+3230     |       No more Frag      |   |   |     Set Retrans_Timer
+3231     | ~~~~~~~~~~~~~~~~~~~~~~~ |   |   |
+3232     |  Stop Retrans_Timer     |   |   |
+3233     |  Send ALL-1-empty       |   |   |
+3234     +-------------------------+   |   |
+3235                                   |   |
+3236          Local_Bitmap==Recv_Bitmap|   |
+3237          ~~~~~~~~~~~~~~~~~~~~~~~~~|   |Attemp > MAX_ACK_REQUESTS
+3238     +=========+Stop Retrans_Timer |   |~~~~~~~~~~~~~~~~~~~~~~~
+3239     |   END   +<------------------+   v  Send Abort
+3240     +=========+                     +=+=========+
+3241                                     |   ERROR   |
+3242                                     +===========+
+3243
+3244          Figure 39: Sender State Machine for the ACK-on-Error Mode
+3253       Not All- & w=expected +---+   +---+w = Not expected
+3254       ~~~~~~~~~~~~~~~~~~~~~ |   |   |   |~~~~~~~~~~~~~~~~
+3255       Set local_Bitmap(FCN) |   v   v   |discard
+3256                            ++===+===+===+=+
+3257    +-----------------------+              +--+ All-0 & full
+3258    |            ABORT *<---+  Rcv Window  |  | ~~~~~~~~~~~~
+3259    |  +--------------------+              +<-+ w =next
+3260    |  |     All-0 empty +->+=+=+===+======+ clear lcl_Bitmap
+3261    |  |     ~~~~~~~~~~~ |    | |   ^
+3262    |  |     send bitmap +----+ |   |w=expct & not-All & full
+3263    |  |                        |   |~~~~~~~~~~~~~~~~~~~~~~~~
+3264    |  |                        |   |set lcl_Bitmap; w =nxt
+3265    |  |                        |   |
+3266    |  |      All-0 & w=expect  |   |     w=next
+3267    |  |      & no_full Bitmap  |   |    ~~~~~~~~  +========+
+3268    |  |      ~~~~~~~~~~~~~~~~~ |   |    Send abort| Error/ |
+3269    |  |      send local_Bitmap |   |  +---------->+ Abort  |
+3270    |  |                        |   |  | +-------->+========+
+3271    |  |                        v   |  | |   all-1       ^
+3272    |  |    All-0 empty    +====+===+==+=+=+ ~~~~~~~     |
+3273    |  |  ~~~~~~~~~~~~~ +--+    Wait       | Send abort  |
+3274    |  |  send lcl_btmp +->| Missing Fragm.|             |
+3275    |  |                   +==============++             |
+3276    |  |                                  +--------------+
+3277    |  |                                   Uplink Only &
+3278    |  |                             Inactivity_Timer = expires
+3279    |  |                             ~~~~~~~~~~~~~~~~~~~~~~~~~~
+3280    |  |                              Send Abort
+3281    |  |All-1 & w=expect & MIC wrong
+3282    |  |~~~~~~~~~~~~~~~~~~~~~~~~~~~~      +-+  All-1
+3283    |  |set local_Bitmap(FCN)             | v  ~~~~~~~~~~
+3284    |  |send local_Bitmap     +===========+==+ snd lcl_btmp
+3285    |  +--------------------->+   Wait End   +-+
+3286    |                         +=====+=+====+=+ | w=expct &
+3287    |       w=expected & MIC right  | |    ^   | MIC wrong
+3288    |       ~~~~~~~~~~~~~~~~~~~~~~  | |    +---+ ~~~~~~~~~
+3289    |  set & send local_Bitmap(FCN) | | set lcl_Bitmap(FCN)
+3290    |                               | |
+3291    |All-1 & w=expected & MIC right | +-->* ABORT
+3292    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ v
+3293    |set & send local_Bitmap(FCN) +=+==========+
+3294    +---------------------------->+     END    |
+3295                                  +============+
+3296                --->* ABORT
+3297                     Only Uplink
+3298                     Inactivity_Timer = expires
+3299                     ~~~~~~~~~~~~~~~~~~~~~~~~~~
+3300                     Send Abort
+3301
+3302
+3303
+3304 Minaburo, et al.        Expires September 1, 2018              [Page 59]
+3305
+3306 Internet-Draft                 LPWAN SCHC                  February 2018
+3307
+3308
+3309         Figure 40: Receiver State Machine for the ACK-on-Error Mode
+3310
+3311 Appendix D.  Note
+3312
+3313    Carles Gomez has been funded in part by the Spanish Government
+3314    (Ministerio de Educacion, Cultura y Deporte) through the Jose
+3315    Castillejo grant CAS15/00336, and by the ERDF and the Spanish
+3316    Government through project TEC2016-79988-P.  Part of his contribution
+3317    to this work has been carried out during his stay as a visiting
+3318    scholar at the Computer Laboratory of the University of Cambridge.
+3319
+3320 Authors' Addresses
+3321
+3322    Ana Minaburo
+3323    Acklio
+3324    2bis rue de la Chataigneraie
+3325    35510 Cesson-Sevigne Cedex
+3326    France
+3327
+3328    Email: ana@ackl.io
+3329
+3330
+3331    Laurent Toutain
+3332    IMT-Atlantique
+3333    2 rue de la Chataigneraie
+3334    CS 17607
+3335    35576 Cesson-Sevigne Cedex
+3336    France
+3337
+3338    Email: Laurent.Toutain@imt-atlantique.fr
+3339
+3340
+3341    Carles Gomez
+3342    Universitat Politecnica de Catalunya
+3343    C/Esteve Terradas, 7
+3344    08860 Castelldefels
+3345    Spain
+3346
+3347    Email: carlesgo@entel.upc.edu
+3348
+3349
+3350
+3351
+3352
+3353
+3354
+3355
+3356
+3357
+3358
+3359
+3360 Minaburo, et al.        Expires September 1, 2018              [Page 60]
