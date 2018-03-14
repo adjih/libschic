@@ -43,10 +43,6 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-
-typedef bool bool_t; /* XXX:  replace all */
-#define BOOL_TRUE true
-#define BOOL_FALSE false
   
 /*--------------------------------------------------*/
 
@@ -175,7 +171,7 @@ typedef bool bool_t; /* XXX:  replace all */
  *   with (maximum) size `capacity' and where `position' acts as a cursor.
  *
  *   It must be initialized by `BUFFER_INIT' or `buffer_init'
- *   (then `position' equals 0 and `has_bound_error' is reset to BOOL_FALSE)
+ *   (then `position' equals 0 and `has_bound_error' is reset to false)
  *
  *   - One can push and pop data, with BUFFER_PUT_... or BUFFER_GET_... macros;
  *   with these functions, the current `position' is properly incremented,
@@ -189,7 +185,7 @@ typedef struct {
   uint8_t* data;            /**< pointer to underlying block of memory */
   unsigned int capacity;    /**< maximum amount of bytes associated to `data' */
   unsigned int position;    /**< current position (for next put/get data) */ 
-  bool_t   has_bound_error; /**< BOOL_TRUE iff an overflow was detected */
+  bool   has_bound_error; /**< true iff an overflow was detected */
 } buffer_t;
 
 /*--------------------------------------------------*/
@@ -269,11 +265,11 @@ static inline void buffer_init_from_part(buffer_t* buffer,
 { 
   if (super_buffer->capacity - super_buffer->position + 1 < size) {
     super_buffer->position = super_buffer->capacity;
-    super_buffer->has_bound_error = BOOL_TRUE;
+    super_buffer->has_bound_error = true;
     buffer->data = NULL;
     buffer->capacity = 0;
     buffer->position = 0;
-    buffer->has_bound_error = BOOL_TRUE;
+    buffer->has_bound_error = true;
     return;
   }
 
@@ -286,7 +282,7 @@ static inline void buffer_put_data(buffer_t* buffer,
 				   uint8_t* added_data, 
 				   unsigned int added_data_size)
 { BUFFER_PUT_DATA( (*buffer), added_data, added_data_size, 
-		  (buffer)->has_bound_error = BOOL_TRUE); }
+		  (buffer)->has_bound_error = true); }
 
 
 
@@ -302,31 +298,31 @@ static inline uint8_t* buffer_peek_data(buffer_t* buffer,
     buffer->position += data_size;
     return result;
   } else {
-    buffer->has_bound_error = BOOL_TRUE;
+    buffer->has_bound_error = true;
     return NULL;
   }
 }
 
 static inline void buffer_put_u8(buffer_t* buffer, uint8_t value)
-{ BUFFER_PUT_U8( (*buffer), value, (buffer)->has_bound_error = BOOL_TRUE); }
+{ BUFFER_PUT_U8( (*buffer), value, (buffer)->has_bound_error = true); }
 
 static inline void buffer_put_u16(buffer_t* buffer, uint16_t value)
-{ BUFFER_PUT_U16( (*buffer), value, (buffer)->has_bound_error = BOOL_TRUE); }
+{ BUFFER_PUT_U16( (*buffer), value, (buffer)->has_bound_error = true); }
 
 static inline void buffer_put_u32(buffer_t* buffer, uint32_t value)
-{ BUFFER_PUT_U32( (*buffer), value, (buffer)->has_bound_error = BOOL_TRUE); }
+{ BUFFER_PUT_U32( (*buffer), value, (buffer)->has_bound_error = true); }
 
 
 static inline void buffer_get_data
 (buffer_t* buffer, uint8_t* popped_data, unsigned int popped_data_size)
 { BUFFER_GET_DATA( popped_data, popped_data_size, (*buffer),
-		  (buffer)->has_bound_error = BOOL_TRUE); }
+		  (buffer)->has_bound_error = true); }
 
 static inline uint8_t buffer_get_u8(buffer_t* buffer)
 { 
   uint8_t result;
   BUFFER_GET_U8(result, (*buffer), 
-		(buffer)->has_bound_error = BOOL_TRUE; result=0); 
+		(buffer)->has_bound_error = true; result=0); 
   return result;
 }
 
@@ -334,7 +330,7 @@ static inline uint16_t buffer_get_u16(buffer_t* buffer)
 { 
   uint16_t result;
   BUFFER_GET_U16(result, (*buffer), 
-		 (buffer)->has_bound_error = BOOL_TRUE; result=0); 
+		 (buffer)->has_bound_error = true; result=0); 
   return result;
 }
 
@@ -343,7 +339,7 @@ static inline uint32_t buffer_get_u32(buffer_t* buffer)
 { 
   uint32_t result;
   BUFFER_GET_U32(result, (*buffer), 
-		 (buffer)->has_bound_error = BOOL_TRUE; result=0); 
+		 (buffer)->has_bound_error = true; result=0); 
   return result;
 }
 
@@ -368,7 +364,7 @@ static inline void buffer_put_size_at_mark_u8(buffer_t* buffer, buffer_mark_t ma
 {
   uint8_t value = buffer->position - mark.position + offset - 1;
   if (mark.position >= buffer->capacity) {
-    buffer->has_bound_error = BOOL_TRUE;
+    buffer->has_bound_error = true;
     return;
   }
   buffer->data[mark.position] = value;
@@ -406,7 +402,7 @@ static inline void bit_buffer_init_read
 }
 
 static inline void bit_buffer_put
-(buffer_t* buffer, bit_buffer_t* bit_buffer, bool_t bit)
+(buffer_t* buffer, bit_buffer_t* bit_buffer, bool bit)
 {
   if (bit)
     bit_buffer->current_byte |= 1u<<(bit_buffer->current_bit_pos);
@@ -415,11 +411,11 @@ static inline void bit_buffer_put
     bit_buffer_flush();
 }
 
-static inline bool_t bit_buffer_get(buffer_t* buffer, bit_buffer_t* bit_buffer)
+static inline bool bit_buffer_get(buffer_t* buffer, bit_buffer_t* bit_buffer)
 {
   if (bit_buffer->current_bit_pos == 8)
     bit_buffer_init_read(buffer, bit_buffer);
-  bool_t result = (bit_buffer->current_byte 
+  bool result = (bit_buffer->current_byte 
 		   & (1u << bit_buffer->current_bit_pos)) != 0;
   bit_buffer->current_bit_pos ++;
   return result;
