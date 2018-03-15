@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-static const int FIELD_ID_IPV6_SPACE = 0;
+static const int FID_NAMESPACE_IPV6 = 0;
 
 typedef enum {
     /*& 2082 9.1.  IPv6 version field */
@@ -50,7 +50,7 @@ typedef enum {
     /*& 2287 9.11.  UDP Checksum field */    
     FID_IPv6_UDP_Checksum,
     
-    FID_IPv6_Unused // XXX
+    FID_IPv6_COUNT // XXX
 } field_id_ipv6_t;
 
 int lethryk_parse_ipv6(buffer_t* data,

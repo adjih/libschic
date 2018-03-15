@@ -10,7 +10,7 @@
 
 %module liblethrykmodule
 %include "stdint.i"
- //%include "cdata.i"
+%include "cdata.i"
 %include "carrays.i"
  //%include "typemaps.i"
  //%include "cpointer.i"

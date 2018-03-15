@@ -38,13 +38,14 @@ static inline void
 set_token(rule_token_t *token, const unsigned int fid,
           const uint32_t value, uint8_t *const value_ptr, const size_t length)
 {
-    token->field_id_namespace = FIELD_ID_IPV6_SPACE;
+    token->field_id_namespace = FID_NAMESPACE_IPV6;
     token->field_id = fid;
     token->field_position = 1;
 
     token->target.value = value;
     token->target.value_ptr = value_ptr;
     token->target.length = length;
+    //DEBUG("set_token %u\n", fid);
 }
 
 /*
@@ -164,8 +165,8 @@ int lethryk_parse_ipv6(buffer_t* data,
     uint16_t udp_length   = buffer_get_u16(data);
     uint16_t udp_checksum = buffer_get_u16(data);
     result_index += 4;
-    CHECK_BOUND_OR_RETURN(data, result_index-1, result_max_size);    
-
+    CHECK_BOUND_OR_RETURN(data, result_index-1, result_max_size);
+    
     set_token(&result[current], FID_IPv6_UDP_Source_Port,
               src_port, NULL, BUFFER_SIZE_U16 * BITS_PER_BYTE);
     set_token(&result[current+1], FID_IPv6_UDP_Destination_Port,
