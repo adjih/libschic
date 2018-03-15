@@ -7,7 +7,7 @@ CFLAGS += -Wall -Wextra -g3 -fPIC
 
 #--------------------------------------------------
 
-SRCS = buffer.c parser_ipv6.c lethryk.c
+SRCS = buffer.c parser_ipv6.c lethryk.c fragment.c
 
 HEADERS = $(SRCS:.c=.h)
 

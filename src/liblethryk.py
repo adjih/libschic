@@ -11,7 +11,7 @@ FID_to_name = {
     getattr(lethryk,k):k for k in dir(lethryk) if k.startswith("FID_IPv6_")
 }
 
-print(FID_to_name)
+#print(FID_to_name)
 
 #---------------------------------------------------------------------------
 
@@ -19,9 +19,7 @@ def bytes_to_u8array(packet_as_bytes):
     data_size = len(packet_as_bytes)
     data = u8array(data_size)
     for i,x in enumerate(packet_as_bytes):
-        print(x, end=" ")
         data[i] = x
-    print()
     return data, data_size
 
 def make_buffer_from_bytes(packet_as_bytes):
@@ -31,19 +29,27 @@ def make_buffer_from_bytes(packet_as_bytes):
     data_buffer.data_ref = data # avoid garbage collection
     return data_buffer
 
+def make_bit_buffer(lt_buffer):
+    bb = bit_buffer_t()
+    bit_buffer_init(bb, lt_buffer)
+    return bb
+
 def dump_hex(iterable):
     for x in iterable:
         print(" %02x" % x, end="")
     print()
 
 def data_buffer_dump(data_buffer):
-    print("data_buffer:", end="")
+    position = data_buffer.position
+    print("data_buffer[{}:]:".format(position), end="")
     content = []
     while True:
         x = buffer_get_u8(data_buffer)
         if data_buffer.has_bound_error:
             break
         content.append(x)
+    data_buffer.position = position
+    data_buffer.has_bound_error = False
     dump_hex(content)
 
 #---------------------------------------------------------------------------
@@ -84,5 +90,14 @@ class Parser:
                     value = bytes([value_u8[i]
                                    for i in range(token.target.length//8)])
                     dump_hex(value)
+
+#---------------------------------------------------------------------------
+
+class FragmentEngine:
+    def __init__(self):
+        self.engine = None
+
+    def init_sender(self):
+        self.engine = frag_engine_t()
 
 #---------------------------------------------------------------------------

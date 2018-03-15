@@ -24,15 +24,18 @@
 %{
 
 #include "buffer.h"
-//#include "buffer.c"
 #include "lethryk.h"
-#include "parser_ipv6.c" // XXX
-  
+
+#include "buffer.c" // XXX - should be in libxxx.so
+#include "parser_ipv6.c" // XXX - should be in libxxx.so
+#include "fragment.c" // XXX
+    
 %}
 
 %include "buffer.h"
 %include "parser_ipv6.h"
 %include "lethryk.h"
+%include "fragment.h"
 
 //---------------------------------------------------------------------------
 

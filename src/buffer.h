@@ -389,6 +389,22 @@ static inline void buffer_put_size_at_mark_u8(buffer_t* buffer, buffer_mark_t ma
 
 /*---------------------------------------------------------------------------*/
 
+typedef struct {
+    buffer_t* buffer;
+    uint32_t  pending;
+    size_t    pending_bit_count;
+} bit_buffer_t;
+
+
+void bit_buffer_init(bit_buffer_t *bit_buffer, buffer_t *base_buffer);
+uint8_t bit_buffer_get_bit(bit_buffer_t *bb);
+void bit_buffer_put_bit(bit_buffer_t *bb, uint8_t bit);
+uint32_t bit_buffer_get_several(bit_buffer_t *bb, size_t bit_count);
+void bit_buffer_put_several(bit_buffer_t *bb,
+                            uint32_t bit_block, size_t bit_count);
+
+/*---------------------------------------------------------------------------*/
+
 #if 0
 
 typedef struct {

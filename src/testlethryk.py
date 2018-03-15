@@ -3,6 +3,7 @@
 #---------------------------------------------------------------------------
 
 import liblethryk as lt
+import argparse
 
 #---------------------------------------------------------------------------
 
@@ -19,16 +20,55 @@ for packet_str in packet_str_list:
     packet_str = packet_str.replace("_", " ")
     packet = bytes([ eval("0x"+x) for x in packet_str.split() ])
     packet_list.append(packet)
-    print(packet)
     
 #---------------------------------------------------------------------------
 
-parser = lt.Parser()
-print(parser.parse(packet_list[0]))
-parser.dump()
+def test_packet():
+    parser = lt.Parser()
+    parser.parse(packet_list[0])
+    parser.dump()
 
-#print(dir(lt))
-#print(lt.buffer_get_u8(data_buffer))
-#print(lt.buffer_get_u16(data_buffer))
+#---------------------------------------------------------------------------
+
+def test_bit_buffer():
+    lt_buffer1 = lt.make_buffer_from_bytes(bytes(range(0x100)))
+    bb1 = lt.make_bit_buffer(lt_buffer1)
+    lt.data_buffer_dump(lt_buffer1)
+
+    lt_buffer2 = lt.make_buffer_from_bytes(bytes([0]*0x100))
+    bb2 = lt.make_bit_buffer(lt_buffer2)
+    lt.data_buffer_dump(lt_buffer2)
+
+    total_bit = 0x100 * 8
+    bit_size = 4
+    while not bb1.buffer.has_bound_error:
+        for i in range(8):
+            if bit_size == 0:
+                bit_block = lt.bit_buffer_get_bit(bb1)
+            else:
+                bit_block = lt.bit_buffer_get_several(bb1, bit_size)
+            if not bb1.buffer.has_bound_error:
+                bit_str = bin(bit_block).replace("0b","")
+                bit_str = (bit_size - len(bit_str))*"0" + bit_str
+                print(bit_str, end=" ")
+                lt.bit_buffer_put_several(bb2, bit_block, bit_size)
+        print()
+
+    lt_buffer2.position = 0
+    lt.data_buffer_dump(lt_buffer2)
+
+    dont_garbage_collect_before = [lt_buffer1, lt_buffer2]
+
+#---------------------------------------------------------------------------
+
+def test_frag():
+    print(packet_list[0])
+    sender = lt.FragmentEngine()
+    sender.init_sender()
+
+#---------------------------------------------------------------------------
+
+#test_frag()
+test_bit_buffer()
 
 #---------------------------------------------------------------------------

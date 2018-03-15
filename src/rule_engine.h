@@ -50,9 +50,21 @@ typedef enum {
   CDA_DEVIID,
   CDA_APPIID
 } comp_decomp_action_t;
-  
-/*--------------------------------------------------*/
 
+
+/*--------------------------------------------------*/
+/*
+  Rule bytecode:
+  <rule ID (4)>
+  <fid namespace (1)>
+  <fid (1)>
+  <fid position (1)>
+  <direction (1)>
+  <matching operator (1)>
+  <matching operator data position (2)>
+ */
+/*--------------------------------------------------*/
+  
 #ifdef __cplusplus
 }
 #endif
