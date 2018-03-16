@@ -349,9 +349,12 @@ static inline uint32_t buffer_get_u32(buffer_t* buffer)
 
 static inline size_t buffer_get_position(buffer_t* buffer)
 { return buffer->position; }
-    
+
+#if 0
+// XXX: remove
 static inline size_t buffer_get_bit_position(buffer_t* buffer)
 { return buffer->position * BITS_PER_BYTE; }
+#endif
 
 static inline size_t buffer_get_available(buffer_t* buffer)
 {
@@ -390,71 +393,25 @@ static inline void buffer_put_size_at_mark_u8(buffer_t* buffer, buffer_mark_t ma
 /*---------------------------------------------------------------------------*/
 
 typedef struct {
-    buffer_t* buffer;
+    buffer_t *buffer;
     uint32_t  pending;
     size_t    pending_bit_count;
 } bit_buffer_t;
 
 
 void bit_buffer_init(bit_buffer_t *bit_buffer, buffer_t *base_buffer);
-uint8_t bit_buffer_get_bit(bit_buffer_t *bb);
-void bit_buffer_put_bit(bit_buffer_t *bb, uint8_t bit);
-uint32_t bit_buffer_get_several(bit_buffer_t *bb, size_t bit_count);
-void bit_buffer_put_several(bit_buffer_t *bb,
+uint8_t bit_buffer_get_bit(bit_buffer_t *bit_buffer);
+void bit_buffer_put_bit(bit_buffer_t *bit_buffer, uint8_t bit);
+uint32_t bit_buffer_get_several(bit_buffer_t *bit_buffer, size_t bit_count);
+void bit_buffer_put_several(bit_buffer_t *bit_buffer,
                             uint32_t bit_block, size_t bit_count);
-
-/*---------------------------------------------------------------------------*/
-
-#if 0
-
-typedef struct {
-  uint8_t current_byte;
-  uint8_t current_bit_pos;
-} bit_buffer_t;
-
-static inline void bit_buffer_init_write(bit_buffer_t* bit_buffer) 
-{
-  bit_buffer->current_byte = 0;
-  bit_buffer->current_bit_pos = 0;
-}
-
-static inline void bit_buffer_flush(buffer_t* buffer, bit_buffer_t* bit_buffer)
-{
-  if (bit_buffer->current_bit_pos > 0) {
-    buffer_put_u8(buffer, bit_buffer->current_byte);
-    bit_buffer->current_byte = 0;
-    bit_buffer->current_bit_pos = 0;
-  }
-}
-
-static inline void bit_buffer_init_read
-(buffer_t* buffer, bit_buffer_t* bit_buffer)
-{
-  bit_buffer->current_byte = buffer_get_u8(buffer);
-  bit_buffer->current_bit_pos = 0;
-}
-
-static inline void bit_buffer_put
-(buffer_t* buffer, bit_buffer_t* bit_buffer, bool bit)
-{
-  if (bit)
-    bit_buffer->current_byte |= 1u<<(bit_buffer->current_bit_pos);
-  bit_buffer->current_bit_pos += 1;
-  if (bit_buffer->current_bit_pos == BITS_PER_BYTE)
-    bit_buffer_flush();
-}
-
-static inline bool bit_buffer_get(buffer_t* buffer, bit_buffer_t* bit_buffer)
-{
-  if (bit_buffer->current_bit_pos == 8)
-    bit_buffer_init_read(buffer, bit_buffer);
-  bool result = (bit_buffer->current_byte 
-		   & (1u << bit_buffer->current_bit_pos)) != 0;
-  bit_buffer->current_bit_pos ++;
-  return result;
-}
-
-#endif
+size_t bit_buffer_get_content_bitsize(bit_buffer_t *bit_buffer);
+size_t bit_buffer_get_available_bitsize(bit_buffer_t *bit_buffer);
+void bit_buffer_copy_several(bit_buffer_t *to_bit_buffer,
+                             bit_buffer_t *from_bit_buffer,
+                             size_t bit_count);
+void bit_buffer_put_data(bit_buffer_t *bit_buffer,
+                         uint8_t* data, size_t data_size);
 
 /*---------------------------------------------------------------------------*/
 

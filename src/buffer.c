@@ -95,5 +95,61 @@ void bit_buffer_put_several(bit_buffer_t *bb,
         bit_buffer_put_bit(bb, current);
     }
 }
-   
+
+
+size_t bit_buffer_get_available_bitsize(bit_buffer_t *bb)
+{
+    if (bb->buffer->has_bound_error)
+        return 0;
+    return buffer_get_available(bb->buffer) * BITS_PER_BYTE
+        - (bb->pending_bit_count);
+}
+
+size_t bit_buffer_get_content_bitsize(bit_buffer_t *bb)
+{
+    return bb->buffer->position * BITS_PER_BYTE + bb->pending_bit_count;
+}
+
+void bit_buffer_copy_several(bit_buffer_t *to_bit_buffer,
+                             bit_buffer_t *from_bit_buffer,
+                             size_t bit_count)
+{
+    for (size_t i = 0; i < bit_count; i++) {
+        uint8_t one_bit = bit_buffer_get_bit(from_bit_buffer);
+        if (from_bit_buffer->buffer->has_bound_error) {
+            return;
+        }
+        bit_buffer_put_bit(to_bit_buffer, one_bit);
+    }
+}
+
+#if 0
+size_t bit_buffer_copy_several(bit_buffer_t *to_bit_buffer,
+                               bit_buffer_t *from_bit_buffer,
+                               size_t bit_count)
+{
+    if (to_bit_buffer->buffer->has_bound_error
+        || from_bit_buffer->buffer->has_bound_error) {
+        return 0;
+    }
+    for (size_t i = 0; i < bit_count; i++) {
+        uint8_t one_bit = bit_buffer_get_bit(from_bit_buffer);
+        if (from_bit_buffer->buffer->has_bound_error)
+            return i;
+        bit_buffer_put_bit(to_bit_buffer, one_bit);
+        if (to_bit_buffer->buffer->has_bound_error)
+            return i;
+    }
+    return bit_count;
+}
+#endif
+
+
+void bit_buffer_put_data(bit_buffer_t *bb, uint8_t* data, size_t data_size)
+{
+    for (size_t i = 0; i < data_size; i++) {
+        bit_buffer_put_several(bb, data[i], BITS_PER_BYTE);
+    }
+}
+
 /*---------------------------------------------------------------------------*/

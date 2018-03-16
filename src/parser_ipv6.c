@@ -102,7 +102,8 @@ int lethryk_parse_ipv6(buffer_t* data,
     if ( (packet_size < IPV6_FIXED_HEADER_SIZE)
 	 || (packet_size - IPV6_FIXED_HEADER_SIZE != payload_length)) {
       // XXX: is it grounds for rejection ?
-      DEBUG("incorrect IPv6 packet size, %u %u\n", packet_size, payload_length);
+      DEBUG("incorrect IPv6 packet size, %zu %u\n",
+            packet_size, payload_length);
       return -1;
     }
     set_token(&result[current], FID_IPv6_Payload_Length,

@@ -2,7 +2,7 @@
 # Cedric Adjih - Inria - 2018
 #---------------------------------------------------------------------------
 
-all: rfc8200-ref.txt
+all: rfc8200-ref.txt extra
 
 #---------------------------------------------------------------------------
 
@@ -29,3 +29,13 @@ draft-ietf-lpwan-ipv6-static-context-hc.txt:
 
 #---------------------------------------------------------------------------
 
+#https://www.ietf.org/id/draft-barthel-icmpv6-schc-00.txt
+#https://tools.ietf.org/id/draft-lagos-lpwan-icmpv6-static-context-hc-01.txt
+
+draft-%.txt:
+	wget https://tools.ietf.org/id/$@
+
+extra: draft-barthel-icmpv6-schc-00-lines.txt \
+  draft-lagos-lpwan-icmpv6-static-context-hc-01-lines.txt
+
+#enscript -o a.ps -r -2 draft-barthel-icmpv6-schc-00-lines.txt 
