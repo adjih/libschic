@@ -6,6 +6,8 @@
 
 #include "fragment.h"
 
+#include "fragment_repr.c"
+
 /*---------------------------------------------------------------------------*/
 
 void frag_engine_init(frag_engine_t *engine,
@@ -34,6 +36,7 @@ void frag_sender_prepare_noack(frag_engine_t *engine, size_t max_frag_size)
     engine->is_sender = true;
     compute_mic(engine->data.data, engine->data.capacity,
                 engine->mic, MIC_SIZE);
+    engine->frag_size = max_frag_size;    
 
     /*&
       1349    <------------ R ----------->
@@ -56,12 +59,12 @@ void frag_sender_prepare_noack(frag_engine_t *engine, size_t max_frag_size)
     size_t rounding = frag_payload_bitsize-1;
     engine->frag_count = (payload_bitsize + rounding) / frag_payload_bitsize;
     engine->frag_index = 0;
+
 }
 
 /*---------------------------------------------------------------------------*/
 
-int frag_sender_generate_noack(frag_engine_t *engine,
-                               bit_buffer_t* bit_buffer)
+int frag_engine_generate_noack(frag_engine_t *engine, bit_buffer_t* bit_buffer)
 {
     assert(engine->frag_index <= engine->frag_count);
     if (engine->frag_count == 0) {
@@ -123,31 +126,36 @@ int frag_sender_generate_noack(frag_engine_t *engine,
     assert(!bit_buffer->buffer->has_bound_error); /* because we checked size */
     assert(!bit_buffer->buffer->has_bound_error); /* because we checked size */
     engine->frag_index++;
+
+    bit_buffer_add_padding(bit_buffer);
+    if (bit_buffer->buffer->has_bound_error) {
+        return -1;
+    }
     
-    return 1;
+    return bit_buffer->buffer->position; /* in bytes */
 }
 
 /*
   Return -1 in case of error, 0 if there is nothing to send, etc.
 */
-int frag_sender_generate(frag_engine_t *engine,
+int frag_engine_generate(frag_engine_t *engine,
                          uint8_t *res_data, size_t res_data_max_size)
 {
     assert(engine->is_sender);
  
-    if (res_data_max_size < engine->max_frag_size) {
+    if (res_data_max_size < engine->frag_size) {
         DEBUG("fragment buffer too small %zu<%zu\n",
-              res_data_max_size, engine->max_frag_size);
+              res_data_max_size, engine->frag_size);
         return -1;
     }
 
     buffer_t buffer;
-    buffer_init(&buffer, res_data, res_data_max_size);
+    buffer_init(&buffer, res_data, engine->frag_size);
     bit_buffer_t bit_buffer;
     bit_buffer_init(&bit_buffer, &buffer);
     
     if (engine->ack_mode == SCHC_NO_ACK) {
-        return frag_sender_generate_noack(engine, &bit_buffer);
+        return frag_engine_generate_noack(engine, &bit_buffer);
     }
     else {
         DEBUG("ack_mode not implemented %u\n", engine->ack_mode);
@@ -187,6 +195,58 @@ void frag_receiver_prepare_noack(frag_engine_t *engine)
     engine->frag_count = (payload_bitsize + rounding) / frag_payload_bitsize;
     engine->frag_index = 0;
 #endif    
+}
+
+
+
+/*
+  Return -1 in case of error, 0 if there is nothing to send, etc.
+*/
+int frag_engine_process_noack(frag_engine_t *engine, bit_buffer_t *bit_buffer)
+{
+    assert(engine->ack_mode == SCHC_NO_ACK);
+    
+    if (bit_buffer_get_available_bitsize(bit_buffer) < engine->R) {
+        DEBUG("bit_buffer content too small %u %u.\n",
+              bit_buffer_get_available_bitsize(bit_buffer), engine->R);
+        return -1;
+    }
+    /*&
+      1349    <------------ R ----------->
+      1350                 <--T--> <--N-->
+      1351     +-- ... --+- ...  -+- ... -+--------...-------+
+      1352     | Rule ID |  DTag  |  FCN  | Fragment payload |
+      1353     +-- ... --+- ...  -+- ... -+--------...-------+
+    */
+    assert(engine->rule_id_bitsize <= sizeof(uint32_t));
+    uint32_t rule_id = bit_buffer_get_several(bit_buffer,
+                                              engine->rule_id_bitsize);
+    assert(engine->rule_id == rule_id);
+    assert(engine->T <= sizeof(uint32_t));
+    bit_buffer_get_several(bit_buffer, engine->T);
+    
+}
+
+/*
+  Return -1 in case of error, 0 if there is nothing to send, etc.
+*/
+int frag_engine_process(frag_engine_t *engine,
+                        uint8_t *res_data, size_t res_data_max_size)
+{
+    assert(!engine->is_sender);
+ 
+    buffer_t buffer;
+    buffer_init(&buffer, res_data, engine->frag_size);
+    bit_buffer_t bit_buffer;
+    bit_buffer_init(&bit_buffer, &buffer);
+    
+    if (engine->ack_mode == SCHC_NO_ACK) {
+        return frag_engine_process_noack(engine, &bit_buffer);
+    }
+    else {
+        DEBUG("ack_mode not implemented %u\n", engine->ack_mode);
+        return -1;
+    }
 }
 
 /*---------------------------------------------------------------------------*/

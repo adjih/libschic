@@ -12,7 +12,9 @@
 #define BEGIN_MACRO do {
 #define END_MACRO } while(0)
 
+#ifndef DEBUG
 #define DEBUG(...) BEGIN_MACRO printf(__VA_ARGS__); END_MACRO
+#endif
 
 /*---------------------------------------------------------------------------*/
 

@@ -379,8 +379,8 @@ static inline buffer_mark_t buffer_put_mark_u8(buffer_t* buffer)
   return result;
 }
 
-static inline void buffer_put_size_at_mark_u8(buffer_t* buffer, buffer_mark_t mark, 
-				int offset)
+static inline void buffer_put_size_at_mark_u8
+(buffer_t* buffer, buffer_mark_t mark, int offset)
 {
   uint8_t value = buffer->position - mark.position + offset - 1;
   if (mark.position >= buffer->capacity) {
@@ -411,7 +411,8 @@ void bit_buffer_copy_several(bit_buffer_t *to_bit_buffer,
                              bit_buffer_t *from_bit_buffer,
                              size_t bit_count);
 void bit_buffer_put_data(bit_buffer_t *bit_buffer,
-                         uint8_t* data, size_t data_size);
+                         uint8_t *data, size_t data_size);
+void bit_buffer_add_padding(bit_buffer_t *bit_buffer);
 
 /*---------------------------------------------------------------------------*/
 

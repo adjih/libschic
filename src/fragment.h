@@ -54,9 +54,8 @@ typedef struct {
     unsigned int M; /**< bitsize of MIC */
 
     unsigned int frag_index;
-    unsigned int frag_count;
-    
-    size_t max_frag_size;    
+    unsigned int frag_count;    
+    size_t frag_size;  
 } frag_engine_t;
 
 /*--------------------------------------------------*/
@@ -66,14 +65,15 @@ void frag_engine_init(frag_engine_t *engine,
                       uint32_t rule_id, size_t rule_id_bitsize,
                       uint32_t dtag,    size_t dtag_bitsize);
     
-void frag_receiver_prepare_noack(frag_engine_t *engine);
-    
 void frag_sender_prepare_noack(frag_engine_t *engine, size_t max_frag_size);
 
-int frag_sender_generate_noack(frag_engine_t *engine, bit_buffer_t* bit_buffer);
-
-int frag_sender_generate(frag_engine_t *engine,
+void frag_receiver_prepare_noack(frag_engine_t *engine);
+    
+int frag_engine_generate(frag_engine_t *engine,
                          uint8_t *res_data, size_t res_data_max_size);
+    
+int frag_engine_process(frag_engine_t *engine,
+                        uint8_t *res_data, size_t res_data_max_size);
     
 /*--------------------------------------------------*/
     

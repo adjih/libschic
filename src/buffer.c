@@ -152,4 +152,12 @@ void bit_buffer_put_data(bit_buffer_t *bb, uint8_t* data, size_t data_size)
     }
 }
 
+void bit_buffer_add_padding(bit_buffer_t *bit_buffer)
+{
+    while (bit_buffer->pending_bit_count != 0
+           && !bit_buffer->buffer->has_bound_error) {
+        bit_buffer_put_bit(bit_buffer, 0);
+    }
+}
+
 /*---------------------------------------------------------------------------*/
