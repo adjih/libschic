@@ -11,9 +11,10 @@ import distutils
 from distutils.core import setup, Extension
 
 extension = Extension("liblethrykmodule", ["liblethrykmodule.c"])
-#extension.undef_macros.append("NDEBUG")
+extension.undef_macros.append("NDEBUG")
 
 setup(name="liblethrykmodule", version="0.1",
+      extra_compile_args = ["-O0", "-g3"],
       ext_modules = [ extension ])
 
 #---------------------------------------------------------------------------

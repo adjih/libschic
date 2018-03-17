@@ -36,7 +36,8 @@ void frag_sender_prepare_noack(frag_engine_t *engine, size_t max_frag_size)
     engine->is_sender = true;
     compute_mic(engine->data.data, engine->data.capacity,
                 engine->mic, MIC_SIZE);
-    engine->frag_size = max_frag_size;    
+    engine->M = MIC_BITSIZE;    
+    engine->frag_size = max_frag_size;
 
     /*&
       1349    <------------ R ----------->
@@ -127,6 +128,9 @@ int frag_engine_generate_noack(frag_engine_t *engine, bit_buffer_t* bit_buffer)
     assert(!bit_buffer->buffer->has_bound_error); /* because we checked size */
     engine->frag_index++;
 
+    frag_engine_repr(engine, stdout);
+    bit_buffer_repr(bit_buffer, stdout);
+    
     bit_buffer_add_padding(bit_buffer);
     if (bit_buffer->buffer->has_bound_error) {
         return -1;
@@ -182,7 +186,7 @@ void frag_receiver_prepare_noack(frag_engine_t *engine)
     engine->R = engine->rule_id_bitsize + engine->T + engine->N;
 
     engine->frag_count = 0; /* no meaning */
-    engine->frag_index = 0; 
+    engine->frag_index = 0;
 #if 0    
     /* We need k | kS - (kR + MIC) >= data_size 
        e.g. k (S-R) >= data_size+MIC
@@ -224,7 +228,6 @@ int frag_engine_process_noack(frag_engine_t *engine, bit_buffer_t *bit_buffer)
     assert(engine->rule_id == rule_id);
     assert(engine->T <= sizeof(uint32_t));
     bit_buffer_get_several(bit_buffer, engine->T);
-    
 }
 
 /*
@@ -257,7 +260,7 @@ int frag_engine_process(frag_engine_t *engine,
 void compute_mic(uint8_t* data, size_t data_size,
                  uint8_t* result, size_t result_max_size)    
 {
-    assert(result_max_size >= MIC_BITSIZE);
+    assert(result_max_size * BITS_PER_BYTE >= MIC_BITSIZE);
     assert(MIC_BITSIZE >= sizeof(uint32_t)); 
     uint32_t data_crc = 0;
     basic_crc32(data, data_size, &data_crc);

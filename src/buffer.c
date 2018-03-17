@@ -89,7 +89,7 @@ uint32_t bit_buffer_get_several(bit_buffer_t *bb, size_t bit_count)
 void bit_buffer_put_several(bit_buffer_t *bb,
                               uint32_t bit_block, size_t bit_count)
 {
-    assert(bit_count < sizeof(uint32_t));
+    assert(bit_count <= sizeof(uint32_t));
     for (uint32_t i = 0; i < bit_count; i++) {
         uint8_t current = (bit_block >> (bit_count-1 -i)) & 0x1u;
         bit_buffer_put_bit(bb, current);

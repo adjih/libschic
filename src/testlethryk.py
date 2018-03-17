@@ -62,10 +62,13 @@ def test_bit_buffer():
 #---------------------------------------------------------------------------
 
 def test_frag():
+    max_frag_size = 8
     packet = packet_list[0]
     packet = bytes(range(10))
     sender = lt.FragmentEngine()
-    sender.init_sender(packet, (0b1001,4), (0b11,2), 8)
+    sender.init_sender(packet, (0b1001,4), (0b11,2), max_frag_size)
+    print("nb: {}".format(sender.engine.frag_count))
+    print(sender.engine.M)    
     print(sender.generate())
 
 #---------------------------------------------------------------------------
