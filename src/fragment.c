@@ -8,31 +8,47 @@
 
 #include "fragment_repr.c"
 
+#define DXXX(...) BEGIN_MACRO                           \
+                      printf(__VA_ARGS__);              \
+                      frag_engine_repr(engine, stdout); \
+                      fprintf(stdout, "\n");            \
+                  END_MACRO
+
+// XXX: macro to remove:
+#define DBXXX(...) BEGIN_MACRO                     \
+        printf(__VA_ARGS__);                       \
+        bit_buffer_repr(bit_buffer, stdout);       \
+        fprintf(stdout, "\n");                     \
+    END_MACRO
+    
+
 /*---------------------------------------------------------------------------*/
 
 void frag_engine_init(frag_engine_t *engine,
-                      uint8_t *data,    size_t max_data_size,
-                      uint32_t rule_id, size_t rule_id_bitsize,
-                      uint32_t dtag,    size_t dtag_bitsize)
+                      uint8_t *data, size_t max_data_size,
+                      size_t rule_id_bitsize, size_t dtag_bitsize)
 {
     buffer_init(&engine->data, data, max_data_size);
     bit_buffer_init(&engine->bit_data, &engine->data);
     memset(engine->mic, 0, MIC_SIZE);
 
     assert(rule_id_bitsize < sizeof(uint32_t)*BITS_PER_BYTE);
-    engine->rule_id = rule_id;
     engine->rule_id_bitsize = rule_id_bitsize;
 
     assert(dtag_bitsize < sizeof(uint32_t)*BITS_PER_BYTE);
-    engine->dtag = dtag;
-    engine->T = dtag_bitsize;    
+    engine->T = dtag_bitsize;
+    DXXX("post-init: ");
 }
 
 /*---------------------------------------------------------------------------*/
 
-void frag_sender_prepare_noack(frag_engine_t *engine, size_t max_frag_size)
+void frag_sender_prepare_noack(frag_engine_t *engine,
+                               uint32_t rule_id, uint32_t dtag,
+                               size_t max_frag_size)
 {
     engine->ack_mode = SCHC_NO_ACK;
+    engine->rule_id = rule_id;
+    engine->dtag = dtag;    
     engine->is_sender = true;
     compute_mic(engine->data.data, engine->data.capacity,
                 engine->mic, MIC_SIZE);
@@ -60,21 +76,30 @@ void frag_sender_prepare_noack(frag_engine_t *engine, size_t max_frag_size)
     size_t rounding = frag_payload_bitsize-1;
     engine->frag_count = (payload_bitsize + rounding) / frag_payload_bitsize;
     engine->frag_index = 0;
-
+    DXXX("post-prepare-noack: ");    
 }
 
 /*---------------------------------------------------------------------------*/
 
+/*
+  Generation with noack: here we generate
+
+  return -1: if error
+  0: iff last fragment
+  >0: iff fragment generated
+ */
 int frag_engine_generate_noack(frag_engine_t *engine, bit_buffer_t* bit_buffer)
 {
     assert(engine->frag_index <= engine->frag_count);
-    if (engine->frag_count == 0) {
+    if (engine->frag_index == engine->frag_count) {
         /* Normal operation, "EOF" */
         return 0;
     }    
     if (bit_buffer->buffer->has_bound_error) {
         return -1;
     }
+    /* Invariant: all is computed in this function so that bit_buffer will never
+     have has_bound_error == true */
     
     bool is_last = (engine->frag_index == engine->frag_count-1);
     size_t remaining_bitsize
@@ -92,7 +117,7 @@ int frag_engine_generate_noack(frag_engine_t *engine, bit_buffer_t* bit_buffer)
       1351     +-- ... --+- ...  -+- ... -+--------...-------+
       1352     | Rule ID |  DTag  |  FCN  | Fragment payload |
       1353     +-- ... --+- ...  -+- ... -+--------...-------+
-    */    
+    */
     bit_buffer_put_several(bit_buffer, engine->rule_id,
                            engine->rule_id_bitsize);
     bit_buffer_put_several(bit_buffer, engine->dtag, engine->T);
@@ -104,13 +129,14 @@ int frag_engine_generate_noack(frag_engine_t *engine, bit_buffer_t* bit_buffer)
     }
     assert(engine->N == 1);
     assert(engine->rule_id_bitsize + engine->T + engine->N == engine->R);
-    available_bitsize -= engine->R; /* always > 0, checked before */
+    available_bitsize = bit_buffer_get_available_bitsize(bit_buffer);    
 
     assert(engine->M == MIC_BITSIZE);
     if (available_bitsize < remaining_bitsize + engine->M) {
         assert(!is_last);
+        DEBUG("AVAILABLE: %zu\n", available_bitsize);                
         bit_buffer_copy_several(bit_buffer, &engine->bit_data,
-                                remaining_bitsize);
+                                available_bitsize);
     } else {
         assert(is_last);
         /*
@@ -120,18 +146,17 @@ int frag_engine_generate_noack(frag_engine_t *engine, bit_buffer_t* bit_buffer)
           1408    |   Rule ID  | DTag  |  1  |     MIC     | payload |
           1409    +---- ... ---+- ... -+-----+---- ... ----+---...---+
         */
+        assert(engine->M % BITS_PER_BYTE == 0);
+        bit_buffer_put_data(bit_buffer, engine->mic, engine->M/BITS_PER_BYTE);
+        DEBUG("REMAINING: %zu\n", remaining_bitsize);
         bit_buffer_copy_several(bit_buffer, &engine->bit_data,
                                 remaining_bitsize);
-        bit_buffer_put_data(bit_buffer, engine->mic, engine->M);
     }
     assert(!bit_buffer->buffer->has_bound_error); /* because we checked size */
-    assert(!bit_buffer->buffer->has_bound_error); /* because we checked size */
     engine->frag_index++;
-
-    frag_engine_repr(engine, stdout);
-    bit_buffer_repr(bit_buffer, stdout);
     
     bit_buffer_add_padding(bit_buffer);
+    assert(!bit_buffer->buffer->has_bound_error); /* because we checked size */
     if (bit_buffer->buffer->has_bound_error) {
         return -1;
     }
@@ -185,33 +210,21 @@ void frag_receiver_prepare_noack(frag_engine_t *engine)
     engine->N = 1;
     engine->R = engine->rule_id_bitsize + engine->T + engine->N;
 
-    engine->frag_count = 0; /* no meaning */
-    engine->frag_index = 0;
-#if 0    
-    /* We need k | kS - (kR + MIC) >= data_size 
-       e.g. k (S-R) >= data_size+MIC
-     */
-    assert(BITS_PER_BYTE*max_frag_size > engine->R);
-    size_t frag_payload_bitsize = (BITS_PER_BYTE*max_frag_size - engine->R);
-    size_t payload_bitsize = BITS_PER_BYTE*data_size + MIC_BITSIZE;
-
-    size_t rounding = frag_payload_bitsize-1;
-    engine->frag_count = (payload_bitsize + rounding) / frag_payload_bitsize;
-    engine->frag_index = 0;
-#endif    
+    engine->frag_count = 0; /* no meaning for receiver (unknown) */
+    engine->frag_index = 0; /* incremented for each received fragment */
 }
 
-
-
 /*
-  Return -1 in case of error, 0 if there is nothing to send, etc.
-*/
-int frag_engine_process_noack(frag_engine_t *engine, bit_buffer_t *bit_buffer)
+  returns: -1==error, 0==ok, 1==finished
+ */
+int frag_engine_process_noack(frag_engine_t *engine, 
+                              bit_buffer_t *bit_buffer)
 {
+    //DXXX("enter-process: ");
     assert(engine->ack_mode == SCHC_NO_ACK);
     
     if (bit_buffer_get_available_bitsize(bit_buffer) < engine->R) {
-        DEBUG("bit_buffer content too small %u %u.\n",
+        DEBUG("bit_buffer content too small %zu %u.\n",
               bit_buffer_get_available_bitsize(bit_buffer), engine->R);
         return -1;
     }
@@ -225,21 +238,59 @@ int frag_engine_process_noack(frag_engine_t *engine, bit_buffer_t *bit_buffer)
     assert(engine->rule_id_bitsize <= sizeof(uint32_t));
     uint32_t rule_id = bit_buffer_get_several(bit_buffer,
                                               engine->rule_id_bitsize);
-    assert(engine->rule_id == rule_id);
+    uint32_t dtag = bit_buffer_get_several(bit_buffer, engine->T);
+    uint32_t fcn = bit_buffer_get_bit(bit_buffer);    
+    if (engine->frag_index == 0) { // XXX: move up to caller
+        engine->rule_id = rule_id;
+        engine->dtag = dtag; 
+    }
+    
+    assert(engine->rule_id == rule_id); // XXX: should be checked by caller
     assert(engine->T <= sizeof(uint32_t));
-    bit_buffer_get_several(bit_buffer, engine->T);
+    assert(engine->dtag == dtag); // XXX: should be checked by caller
+
+
+    if (fcn == 0) {
+        size_t available = bit_buffer_get_available_bitsize(bit_buffer);
+        bit_buffer_copy_several(&engine->bit_data, bit_buffer, available);
+        assert(!bit_buffer->buffer->has_bound_error); /* checked before */
+    }
+    else {
+        /* Last fragment of */
+        /*&
+          1405    <------------ R ----------->
+          1406                  <- T -> <N=1> <---- M ---->
+          1407    +---- ... ---+- ... -+-----+---- ... ----+---...---+
+          1408    |   Rule ID  | DTag  |  1  |     MIC     | payload |
+          1409    +---- ... ---+- ... -+-----+---- ... ----+---...---+
+        */
+        bit_buffer_get_data(bit_buffer, engine->mic, MIC_SIZE);
+        if (bit_buffer->buffer->has_bound_error) {
+            DEBUG("bit_buffer content too small for MIC");
+            return -1;
+        }
+        size_t available = bit_buffer_get_available_bitsize(bit_buffer);
+        bit_buffer_copy_several(&engine->bit_data, bit_buffer, available);
+        assert(!bit_buffer->buffer->has_bound_error); /* used available */
+        DXXX("receiver-final: ");
+    }
+
+    if (engine->data.has_bound_error) {
+        DEBUG("Packet too big");
+        return -1;
+    }
+    
+    return fcn;
 }
 
 /*
-  Return -1 in case of error, 0 if there is nothing to send, etc.
-*/
-int frag_engine_process(frag_engine_t *engine,
-                        uint8_t *res_data, size_t res_data_max_size)
+ */
+int frag_engine_process(frag_engine_t *engine, uint8_t *data, size_t data_size)
 {
     assert(!engine->is_sender);
  
     buffer_t buffer;
-    buffer_init(&buffer, res_data, engine->frag_size);
+    buffer_init(&buffer, data, data_size);
     bit_buffer_t bit_buffer;
     bit_buffer_init(&bit_buffer, &buffer);
     
@@ -315,6 +366,4 @@ void compute_mic(uint8_t* data, size_t data_size,
 1370         | Rule ID | DTag  |W|  0..0 |  payload  |
 1371         +-- ... --+- ... -+-+- ... -+--- ... ---+
 
-
 */
-

@@ -63,13 +63,40 @@ def test_bit_buffer():
 
 def test_frag():
     max_frag_size = 8
-    packet = packet_list[0]
+    #packet = packet_list[0]
     packet = bytes(range(10))
+    #packet = bytes([0])
     sender = lt.FragmentEngine()
-    sender.init_sender(packet, (0b1001,4), (0b11,2), max_frag_size)
-    print("nb: {}".format(sender.engine.frag_count))
-    print(sender.engine.M)    
-    print(sender.generate())
+
+    rule_id_bitsize = 4
+    dtag_bitsize = 2
+    rule_id_info = (0b1001, rule_id_bitsize)
+    dtag_info = (0b11, dtag_bitsize)
+    
+    sender.init_sender(packet, rule_id_info, dtag_info, max_frag_size)
+    print("nb fragments: {}".format(sender.engine.frag_count))
+    packet_list = sender.generate_all()
+    for i,packet in enumerate(packet_list):
+        print("FRAGMENT #{}:".format(i), packet, len(packet))
+
+    receiver = lt.FragmentEngine()
+    #XXX: we need a pre-parser that extract rule_id, dtag, and match it
+    #to the good FragmentEngine
+    receiver.init_receiver(rule_id_bitsize, dtag_bitsize, max_data_size=100)
+    recv_packet_list = packet_list[:]
+    while True:
+        packet = recv_packet_list.pop(0)
+        result = receiver.process(packet)
+        if result == 0:
+            pass # ok, continue
+        elif result == 1:
+            break # finished    
+        elif result == -1:
+            raise RuntimeError("process packet")
+        else: raise RuntimeError("bad return code", result)
+        
+    assert len(recv_packet_list) == 0
+    print("RECEIVED: ", receiver.get_recv_data())
 
 #---------------------------------------------------------------------------
 

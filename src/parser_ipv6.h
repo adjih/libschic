@@ -17,7 +17,7 @@ static const int FID_NAMESPACE_IPV6 = 0;
 
 typedef enum {
     /*& 2082 9.1.  IPv6 version field */
-    FID_IPv6_version,
+    FID_IPv6_version = 0,
 
     /*& 2087 9.2.  IPv6 Traffic class field */
     FID_IPv6_Traffic_class,
@@ -63,4 +63,3 @@ int lethryk_parse_ipv6(buffer_t* data,
 /*---------------------------------------------------------------------------*/
 
 #endif /* PARSER_IPV6_H */
-

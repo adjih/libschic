@@ -412,6 +412,8 @@ void bit_buffer_copy_several(bit_buffer_t *to_bit_buffer,
                              size_t bit_count);
 void bit_buffer_put_data(bit_buffer_t *bit_buffer,
                          uint8_t *data, size_t data_size);
+void bit_buffer_get_data(bit_buffer_t *bit_buffer,
+                         uint8_t *data, size_t data_size);    
 void bit_buffer_add_padding(bit_buffer_t *bit_buffer);
 
 /*---------------------------------------------------------------------------*/

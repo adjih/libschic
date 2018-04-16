@@ -1,3 +1,6 @@
+/*---------------------------------------------------------------------------
+ * Cedric Adjih - Inria - 2018
+ *---------------------------------------------------------------------------*/
 
 #include <stdio.h>
 
@@ -10,6 +13,14 @@ void buffer_repr(buffer_t *buffer, FILE *out)
     fprintf(out, ", 'position':%u", buffer->position);    
     fprintf(out, ", 'capacity':%u", buffer->capacity);
     fprintf(out, ", 'has_bound_error':%u", buffer->has_bound_error);
+    fprintf(out, ", 'content':'");
+    for (size_t i=0; i<buffer->capacity; i++) {
+        if (i == buffer->position) {
+            fprintf(out, "|");
+        }
+        fprintf(out, "%02x", buffer->data[i]);
+    }
+    fprintf(out, "'");
     fprintf(out, "}");
 }
 
@@ -22,18 +33,6 @@ void bit_buffer_repr(bit_buffer_t *bit_buffer, FILE *out)
     fprintf(out, ", 'pending_count':%zu", bit_buffer->pending_bit_count);
     fprintf(out, "}");
 }
-
-#if 0
-void bit_buffer_repr(buffer_t *bit_buffer, FILE *out)
-{
-    fprintf(out, "{'type':'bit_buffer'");
-    fprintf(out, ", 'buffer':");
-    buffer_repr(bit_buffer->buffer);
-    fprintf(out, ", 'pending':%u", buffer->pending);
-    fprintf(out, ", 'pending_count':%u", buffer->pending_count);
-    fprintf(out, "}");
-}
-#endif
 
 #define CASE_REPR(x, out)                       \
     case (x):                                   \
@@ -55,7 +54,24 @@ void frag_engine_repr(frag_engine_t* engine, FILE *out)
 {
     fprintf(out, "{'type':'frag_engine'");
     fprintf(out, ", 'is_sender':%u", engine->is_sender);
-    fprintf(out, ", 'ack_mode':");
+    fprintf(out, ", 'ack_mode':'");
     ack_mode_repr(engine->ack_mode, out);
+    fprintf(out, "'");
+    fprintf(out, ", 'rule_id':%u", engine->rule_id);
+    fprintf(out, ", 'rule_id_bitsize':%u", engine->rule_id_bitsize);
+    fprintf(out, ", 'dtag':%u", engine->dtag);
+    fprintf(out, ", 'R':%u", engine->R);
+    fprintf(out, ", 'T':%u", engine->T);
+    fprintf(out, ", 'W':%u", engine->W);
+    fprintf(out, ", 'M':%u", engine->M);
+    fprintf(out, ", 'frag_index':%u", engine->frag_index);
+    fprintf(out, ", 'frag_count':%u", engine->frag_count);
+    fprintf(out, ", 'frag_size':%zu", engine->frag_size);
+    fprintf(out, ", 'bit_buffer':");
+    bit_buffer_repr(&engine->bit_data, out);
+    //fprintf(out, ", 'buffer':");
+    //buffer_repr(&engine->data, out);
     fprintf(out, "}");
 }
+
+/*---------------------------------------------------------------------------*/

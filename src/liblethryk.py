@@ -55,6 +55,21 @@ def data_buffer_dump(data_buffer):
     data_buffer.has_bound_error = False
     dump_hex(content)
 
+def data_buffer_get(data_buffer):
+    if data_buffer.has_bound_error:
+        return None
+    position = data_buffer.position
+    content = []
+    data_buffer.position = 0
+    for i in range(position):
+        x = buffer_get_u8(data_buffer)
+        if data_buffer.has_bound_error:
+            break
+        content.append(x)
+    assert(data_buffer.position == position)
+    assert(data_buffer.has_bound_error == False)
+    return bytes(content)
+
 #---------------------------------------------------------------------------
 
 MAX_TOKEN_SIZE = FID_IPv6_COUNT
@@ -96,24 +111,25 @@ class Parser:
 
 #---------------------------------------------------------------------------
 
+#XXX: TODO: free memory of buffers
+
 class FragmentEngine:
     def __init__(self):
         self.engine = frag_engine_t()
         self.data_u8 = None
         self.data_size = None
 
-    def _init_engine(self, rule_id_info, dtag_info):
-        rule_id, rule_id_bitsize = rule_id_info
-        dtag_id, dtag_id_bitsize = dtag_info        
+    def _init_engine(self, rule_id_bitsize, dtag_bitsize):
         frag_engine_init(self.engine, self.data_u8.cast(), self.data_size,
-                         rule_id, rule_id_bitsize,
-                         dtag_id, dtag_id_bitsize)
+                         rule_id_bitsize, dtag_bitsize)
 
-    def init_sender(self, packet_as_bytes, rule_id_info,
-                    dtag_info, max_frag_size):
+    def init_sender(self, packet_as_bytes, rule_id_info, dtag_info,
+                    max_frag_size):
+        rule_id, rule_id_bitsize = rule_id_info
+        dtag, dtag_bitsize = dtag_info
         self.data_u8, self.data_size = bytes_to_u8array(packet_as_bytes)
-        self._init_engine(rule_id_info, dtag_info)
-        frag_sender_prepare_noack(self.engine, max_frag_size)
+        self._init_engine(rule_id_bitsize, dtag_bitsize)
+        frag_sender_prepare_noack(self.engine, rule_id, dtag, max_frag_size)
 
     def generate(self):
         frag_max_size= self.engine.frag_size
@@ -121,7 +137,33 @@ class FragmentEngine:
         frag_size = frag_engine_generate(
             self.engine, frag_data.cast(), frag_max_size)
         if frag_size > 0:
-            print(get_data_u8(frag_data, frag_size))
-        return frag_size
+            result = get_data_u8(frag_data, frag_size)
+        elif frag_size == 0:
+            result = None
+        else:
+            raise RuntimeError("generate", frag_size)
+        return result
 
+    def generate_all(self):
+        result = []
+        while True:
+            packet = self.generate()
+            if packet == None:
+                break
+            result.append(packet)
+        return result
+
+    def init_receiver(self, rule_id_bitsize, dtag_bitsize, max_data_size):
+        self.data_u8, self.data_size = bytes_to_u8array(b'\0'*max_data_size)#XXX
+        self._init_engine(rule_id_bitsize, dtag_bitsize)
+        frag_receiver_prepare_noack(self.engine)
+
+    def process(self, packet_as_bytes):
+        packet_u8, packet_size = bytes_to_u8array(packet_as_bytes)
+        return frag_engine_process(self.engine, packet_u8.cast(), packet_size)
+
+    def get_recv_data(self):
+        return data_buffer_get(self.engine.data)
+        
+        
 #---------------------------------------------------------------------------

@@ -78,7 +78,7 @@ void bit_buffer_put_bit(bit_buffer_t *bb, uint8_t bit)
 
 uint32_t bit_buffer_get_several(bit_buffer_t *bb, size_t bit_count)
 {
-    assert(bit_count < sizeof(uint32_t));
+    assert(bit_count < sizeof(uint32_t)*BITS_PER_BYTE);
     uint32_t result = 0;
     for (size_t i = 0; i < bit_count; i++) {
         result = (result<<1) | bit_buffer_get_bit(bb);
@@ -89,13 +89,12 @@ uint32_t bit_buffer_get_several(bit_buffer_t *bb, size_t bit_count)
 void bit_buffer_put_several(bit_buffer_t *bb,
                               uint32_t bit_block, size_t bit_count)
 {
-    assert(bit_count <= sizeof(uint32_t));
+    assert(bit_count <= sizeof(uint32_t)*BITS_PER_BYTE);
     for (uint32_t i = 0; i < bit_count; i++) {
         uint8_t current = (bit_block >> (bit_count-1 -i)) & 0x1u;
         bit_buffer_put_bit(bb, current);
     }
 }
-
 
 size_t bit_buffer_get_available_bitsize(bit_buffer_t *bb)
 {
@@ -123,32 +122,17 @@ void bit_buffer_copy_several(bit_buffer_t *to_bit_buffer,
     }
 }
 
-#if 0
-size_t bit_buffer_copy_several(bit_buffer_t *to_bit_buffer,
-                               bit_buffer_t *from_bit_buffer,
-                               size_t bit_count)
-{
-    if (to_bit_buffer->buffer->has_bound_error
-        || from_bit_buffer->buffer->has_bound_error) {
-        return 0;
-    }
-    for (size_t i = 0; i < bit_count; i++) {
-        uint8_t one_bit = bit_buffer_get_bit(from_bit_buffer);
-        if (from_bit_buffer->buffer->has_bound_error)
-            return i;
-        bit_buffer_put_bit(to_bit_buffer, one_bit);
-        if (to_bit_buffer->buffer->has_bound_error)
-            return i;
-    }
-    return bit_count;
-}
-#endif
-
-
 void bit_buffer_put_data(bit_buffer_t *bb, uint8_t* data, size_t data_size)
 {
     for (size_t i = 0; i < data_size; i++) {
         bit_buffer_put_several(bb, data[i], BITS_PER_BYTE);
+    }
+}
+
+void bit_buffer_get_data(bit_buffer_t *bb, uint8_t* data, size_t data_size)
+{
+    for (size_t i = 0; i < data_size; i++) {
+        data[i] = bit_buffer_get_several(bb, BITS_PER_BYTE);
     }
 }
 

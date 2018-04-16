@@ -41,7 +41,7 @@ extern "C" {
 */
   
 typedef enum {
-  CDA_NOT_SENT,
+  CDA_NOT_SENT = 0,
   CDA_VALUE_SENT,
   CDA_MAPPING_SENT,
   CDA_LSB,
@@ -64,7 +64,7 @@ typedef enum {
   <matching operator data position (2)>
  */
 /*--------------------------------------------------*/
-  
+    
 #ifdef __cplusplus
 }
 #endif
