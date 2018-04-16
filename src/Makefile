@@ -7,7 +7,7 @@ CFLAGS += -Wall -Wextra -g3 -fPIC
 
 #--------------------------------------------------
 
-SRCS = buffer.c parser_ipv6.c lethryk.c fragment.c
+SRCS = buffer.c parser_ipv6.c schic.c fragment.c
 
 HEADERS = $(SRCS:.c=.h)
 
@@ -19,7 +19,7 @@ OBJS = $(SRCS:.c=.o)
 
 all: swig-all
 
-swig-all: liblethryk.a _liblethrykmodule.so
+swig-all: libschic.a _libschicmodule.so
 
 #---------------------------------------------------------------------------
 # Dependencies
@@ -37,20 +37,20 @@ include $(DEPS)
 # Library
 #---------------------------------------------------------------------------
 
-liblethryk.a: ${OBJS}
+libschic.a: ${OBJS}
 	${AR} cru $@ ${OBJS}
 
 #--------------------------------------------------------------------------
 # SWIG wrapper
 #---------------------------------------------------------------------------
 
-_liblethrykmodule.so: liblethrykmodule.c setup.py ${SRCS} ${OBJS}
+_libschicmodule.so: libschicmodule.c setup.py ${SRCS} ${OBJS}
 	rm -rf build
 	${PYTHON} setup.py build #|| python setup.py build
-	ln -sf build/lib*/liblethrykmodule*.so $@ || true
+	ln -sf build/lib*/libschicmodule*.so $@ || true
 
-liblethrykmodule.c: liblethryk.i Makefile ${SRCS} ${HEADERS}
-	swig -python -o $@ liblethryk.i
+libschicmodule.c: libschic.i Makefile ${SRCS} ${HEADERS}
+	swig -python -o $@ libschic.i
 
 #---------------------------------------------------------------------------
 # Cleaning
@@ -58,7 +58,7 @@ liblethrykmodule.c: liblethryk.i Makefile ${SRCS} ${HEADERS}
 
 clean:
 	rm -f *.a *.so *.o *.d *~ *.pyc 
-	rm -f liblethrykmodule.c liblethrykmodule.py
+	rm -f libschicmodule.c libschicmodule.py
 
 really-clean: clean
 	rm -rf build __pycache__

@@ -40,7 +40,7 @@
 #include <stdint.h>
 #include <string.h>
   
-#include "lethryk_base.h"
+#include "schic_base.h"
 
 #ifdef __cplusplus
 extern "C" {

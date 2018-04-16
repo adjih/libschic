@@ -2,8 +2,8 @@
  * Cedric Adjih - Inria - 2018
  *---------------------------------------------------------------------------*/
 
-#ifndef LETHRYK_H
-#define LETHRYK_H
+#ifndef SCHIC_H
+#define SCHIC_H
 
 /*---------------------------------------------------------------------------*/
 
@@ -17,10 +17,10 @@ extern "C" {
 /*--------------------------------------------------*/
 
 typedef enum {
-    LETHRYK_FID_SPACE_IVP6,
-    LETHRYK_FID_SPACE_UDP,
-    LETHRYK_FID_SPACE_COAP,
-    LETHRYK_FID_SPACE_ICMPV6,    
+    SCHIC_FID_SPACE_IVP6,
+    SCHIC_FID_SPACE_UDP,
+    SCHIC_FID_SPACE_COAP,
+    SCHIC_FID_SPACE_ICMPV6,    
 } field_namespace_t;
 
 /*&
@@ -87,4 +87,4 @@ typedef struct {
     
 /*---------------------------------------------------------------------------*/
 
-#endif  /* LETHRYK_H */
+#endif  /* SCHIC_H */

@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------*- c++ -*-
-// SWIG wrapper for liblethryk
+// SWIG wrapper for libschic
 // March 2018: parts copied from
 //   ~/HgRep/NC-iotlab/ns-3.16-hana/nctools/src/libsew.i
 //---------------------------------------------------------------------------
@@ -8,7 +8,7 @@
 // All rights reserved. Distributed only with permission.
 //---------------------------------------------------------------------------
 
-%module liblethrykmodule
+%module libschicmodule
 %include "stdint.i"
 %include "cdata.i"
 %include "carrays.i"
@@ -24,7 +24,7 @@
 %{
 
 #include "buffer.h"
-#include "lethryk.h"
+#include "schic.h"
 
 #include "buffer.c" // XXX - should be in libxxx.so
 #include "parser_ipv6.c" // XXX - should be in libxxx.so
@@ -34,7 +34,7 @@
 
 %include "buffer.h"
 %include "parser_ipv6.h"
-%include "lethryk.h"
+%include "schic.h"
 %include "fragment.h"
 
 //---------------------------------------------------------------------------

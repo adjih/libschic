@@ -15,7 +15,7 @@
    https://github.com/the-tcpdump-group/tcpdump/blob/master/print-ip6.c */
 
 #include "buffer.h"
-#include "lethryk.h"
+#include "schic.h"
 
 #define CHECK_BOUND_OR_RETURN(buffer, result_index, result_max_size) \
     BEGIN_MACRO                                                      \
@@ -52,8 +52,8 @@ set_token(rule_token_t *token, const unsigned int fid,
  *
  *
  */
-int lethryk_parse_ipv6(buffer_t* data,
-                       rule_token_t* result, size_t result_max_size)
+int schic_parse_ipv6(buffer_t* data,
+                     rule_token_t* result, size_t result_max_size)
 {
     size_t packet_size = buffer_get_available(data);
     //DEBUG("packet total size=%u\n", packet_total - IPV6_FIXED_HEADER_SIZE);

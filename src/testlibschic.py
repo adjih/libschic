@@ -2,7 +2,7 @@
 # Cedric Adjih - Inria - 2018
 #---------------------------------------------------------------------------
 
-import liblethryk as lt
+import libschic as lsc
 import argparse
 
 #---------------------------------------------------------------------------
@@ -24,38 +24,38 @@ for packet_str in packet_str_list:
 #---------------------------------------------------------------------------
 
 def test_packet():
-    parser = lt.Parser()
+    parser = lsc.Parser()
     parser.parse(packet_list[0])
     parser.dump()
 
 #---------------------------------------------------------------------------
 
 def test_bit_buffer():
-    lt_buffer1 = lt.make_buffer_from_bytes(bytes(range(0x100)))
-    bb1 = lt.make_bit_buffer(lt_buffer1)
-    lt.data_buffer_dump(lt_buffer1)
+    lt_buffer1 = lsc.make_buffer_from_bytes(bytes(range(0x100)))
+    bb1 = lsc.make_bit_buffer(lt_buffer1)
+    lsc.data_buffer_dump(lt_buffer1)
 
-    lt_buffer2 = lt.make_buffer_from_bytes(bytes([0]*0x100))
-    bb2 = lt.make_bit_buffer(lt_buffer2)
-    lt.data_buffer_dump(lt_buffer2)
+    lt_buffer2 = lsc.make_buffer_from_bytes(bytes([0]*0x100))
+    bb2 = lsc.make_bit_buffer(lt_buffer2)
+    lsc.data_buffer_dump(lt_buffer2)
 
     total_bit = 0x100 * 8
     bit_size = 4
     while not bb1.buffer.has_bound_error:
         for i in range(8):
             if bit_size == 0:
-                bit_block = lt.bit_buffer_get_bit(bb1)
+                bit_block = lsc.bit_buffer_get_bit(bb1)
             else:
-                bit_block = lt.bit_buffer_get_several(bb1, bit_size)
+                bit_block = lsc.bit_buffer_get_several(bb1, bit_size)
             if not bb1.buffer.has_bound_error:
                 bit_str = bin(bit_block).replace("0b","")
                 bit_str = (bit_size - len(bit_str))*"0" + bit_str
                 print(bit_str, end=" ")
-                lt.bit_buffer_put_several(bb2, bit_block, bit_size)
+                lsc.bit_buffer_put_several(bb2, bit_block, bit_size)
         print()
 
     lt_buffer2.position = 0
-    lt.data_buffer_dump(lt_buffer2)
+    lsc.data_buffer_dump(lt_buffer2)
 
     dont_garbage_collect_before = [lt_buffer1, lt_buffer2]
 
@@ -66,7 +66,7 @@ def test_frag():
     #packet = packet_list[0]
     packet = bytes(range(10))
     #packet = bytes([0])
-    sender = lt.FragmentEngine()
+    sender = lsc.FragmentEngine()
 
     rule_id_bitsize = 4
     dtag_bitsize = 2
@@ -79,7 +79,7 @@ def test_frag():
     for i,packet in enumerate(packet_list):
         print("FRAGMENT #{}:".format(i), packet, len(packet))
 
-    receiver = lt.FragmentEngine()
+    receiver = lsc.FragmentEngine()
     #XXX: we need a pre-parser that extract rule_id, dtag, and match it
     #to the good FragmentEngine
     receiver.init_receiver(rule_id_bitsize, dtag_bitsize, max_data_size=100)
@@ -100,6 +100,8 @@ def test_frag():
 
 #---------------------------------------------------------------------------
 
+test_packet()
+print()
 test_frag()
 #test_bit_buffer()
 

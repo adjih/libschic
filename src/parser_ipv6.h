@@ -53,8 +53,8 @@ typedef enum {
     FID_IPv6_COUNT // XXX
 } field_id_ipv6_t;
 
-int lethryk_parse_ipv6(buffer_t* data,
-                       rule_token_t* result, size_t result_max_size);
+int schic_parse_ipv6(buffer_t* data,
+                     rule_token_t* result, size_t result_max_size);
 
 #ifdef __cplusplus
 }

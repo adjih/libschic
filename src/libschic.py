@@ -2,13 +2,13 @@
 # Cedric Adjih - Inria - 2018
 #---------------------------------------------------------------------------
 
-import liblethrykmodule as lethryk
-from liblethrykmodule import *
+import libschicmodule as schic
+from libschicmodule import *
 
 #---------------------------------------------------------------------------
 
 FID_to_name = {
-    getattr(lethryk,k):k for k in dir(lethryk) if k.startswith("FID_IPv6_")
+    getattr(schic,k):k for k in dir(schic) if k.startswith("FID_IPv6_")
 }
 
 #print(FID_to_name)
@@ -85,7 +85,7 @@ class Parser:
         self.packet = packet_as_bytes
         self.data_buffer = make_buffer_from_bytes(self.packet)
         self.data_size = self.data_buffer.capacity
-        self.token_count = lethryk_parse_ipv6(
+        self.token_count = schic_parse_ipv6(
             self.data_buffer, self.token_array, MAX_TOKEN_SIZE)
         return self.token_count
 
