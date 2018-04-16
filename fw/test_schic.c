@@ -19,8 +19,8 @@ static shell_command_t shell_command_list[] = {
 
 /*---------------------------------------------------------------------------*/
 
-#define LETHRYK_MSG_QUEUE_SIZE 16
-static msg_t _msg_queue[LETHRYK_MSG_QUEUE_SIZE];
+#define SCHIC_MSG_QUEUE_SIZE 16
+static msg_t _msg_queue[SCHIC_MSG_QUEUE_SIZE];
 
 int main(void)
 {
@@ -35,7 +35,7 @@ int main(void)
     
     start_udp_sender_thread("ff02::1", 1);
   
-    msg_init_queue(_msg_queue, LETHRYK_MSG_QUEUE_SIZE);
+    msg_init_queue(_msg_queue, SCHIC_MSG_QUEUE_SIZE);
     
     char line_buffer[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_command_list, line_buffer, SHELL_DEFAULT_BUFSIZE);

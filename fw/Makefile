@@ -1,7 +1,7 @@
 
 
 
-APPLICATION = lethryk
+APPLICATION = schic
 
 RIOTBASE ?= ${CURDIR}/../RIOT
 LETHRYKBASE ?= ${CURDIR}/../src
