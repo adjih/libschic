@@ -13,6 +13,15 @@ FID_to_name = {
 
 #print(FID_to_name)
 
+def encode(name):
+    schic_def = dir(schic)
+    full_name = "SCHIC_"+name
+    if full_name not in schic_def:
+        full_name = name
+    if full_name not in schic_def:
+        raise ValueError("Not a constant in libschic", name)
+    return getattr(schic, full_name)
+
 #---------------------------------------------------------------------------
 
 def bytes_to_u8array(packet_as_bytes):

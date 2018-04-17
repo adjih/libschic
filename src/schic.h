@@ -34,18 +34,6 @@ typedef enum {
 static inline bool schic_mic_type_is_valid(schic_mic_type_t value)
 { return 0 <= value && value < SCHIC_MIC_TYPE_COUNT; }
 
-#if 0
-// XXX: remove
-typedef enum {
-    SCHIC_RULE_COMPRESS = 0,
-    SCHIC_RULE_FRAGMENT,
-    SCHIC_RULE_COUNT
-} schic_rule_type_t;
-
-static inline bool schic_rule_type_is_valid(schic_rule_type_t value)
-{ return 0 <= value && value < SCHIC_RULE_COUNT; }
-#endif
-    
 /*---------------------------------------------------------------------------*/
 /* Fragmentation rules */
 /*&
@@ -131,7 +119,7 @@ static inline bool schic_direction_indicator_is_valid(schic_di_t value)
 typedef enum {
     SCHIC_MO_EQUAL = 0,
     SCHIC_MO_IGNORE,
-    SCHIC_MO_MSG,
+    SCHIC_MO_MSB,
     SCHIC_MO_MATCH_MAPPING,
     SCHIC_MO_COUNT,
 } schic_matching_operator_t;
@@ -175,7 +163,7 @@ typedef enum {
     SCHIC_CDA_COMPUTE_CHECKSUM,
     SCHIC_CDA_DEVIID,
     SCHIC_CDA_APPIID,
-    SCHIC_CDA_COUNT
+    SCHIC_CDA_COUNT // XXX: check usefulness of sentinels
 } schic_compression_decompression_action_t;
 
 typedef schic_compression_decompression_action_t schic_cda_t;

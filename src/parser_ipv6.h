@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-static const int FID_NAMESPACE_IPV6 = 1; // SCHIC_FID_SPACE_IVP6;
+static const int FID_NAMESPACE_IPV6 = SCHIC_FID_NAMESPACE_IVP6_UDP;
 
 typedef enum {
     /*& 2082 9.1.  IPv6 version field */

@@ -94,7 +94,6 @@ int rule_engine_load_rule_bytecode(rule_engine_t *engine,
 
 /*---------------------------------------------------------------------------*/
 
-
 bool frag_check_rule_match
 (rule_engine_t *engine, uint8_t *data, size_t data_size,
  buffer_t* rule_buffer)

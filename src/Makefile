@@ -67,12 +67,34 @@ really-clean: clean
 # "Manual" testing
 #---------------------------------------------------------------------------
 
+SSCHC_EX_DIR=../schc-test/example-rule
 
 test: all
 	python3 testlibschic.py
 
 test-frag:
-	python3 rule_compiler.py compile ../schc-test/example-rule/fragment-rule-001.json  /dev/stdout
+	python3 rule_compiler.py compile \
+              ${SSCHC_EX_DIR}/context-001.json \
+              --frag-rule \
+              ${SSCHC_EX_DIR}/fragment-rule-001.json \
+              ${SSCHC_EX_DIR}/fragment-rule-002.json \
+              --output frag-rule.schic
 
-test-comp:
-	python3 rule_compiler.py compile ../schc-test/example-rule/schc-rule-draft-09-r1.json  /dev/stdout
+test-compress:
+	python3 rule_compiler.py compile \
+              ${SSCHC_EX_DIR}/context-001.json \
+              --compress-rule \
+              ${SSCHC_EX_DIR}/schc-rule-draft-09-r1.json \
+              --output compress-rule.schic
+
+test-bytecode:
+	python3 rule_compiler.py compile \
+              ${SSCHC_EX_DIR}/context-001.json \
+              --frag-rule \
+              ${SSCHC_EX_DIR}/fragment-rule-001.json \
+              ${SSCHC_EX_DIR}/fragment-rule-002.json \
+              --compress-rule \
+              ${SSCHC_EX_DIR}/schc-rule-draft-09-r1.json \
+              --output generic-rule.schic
+
+#---------------------------------------------------------------------------
