@@ -175,3 +175,18 @@ class FragmentEngine:
         return data_buffer_get(self.engine.data)
 
 #---------------------------------------------------------------------------
+
+class RuleEngine:
+    def __init__(self):
+        self.engine = rule_engine_t()
+        self.data_u8 = None
+        self.data_size = None
+        
+    def load_rule_bytecode(self, filename):
+        with open(filename, "rb") as f:
+            data_as_bytes = f.read()
+        self.data_u8, self.data_size = bytes_to_u8array(data_as_bytes)
+        rule_engine_load_rule_bytecode(
+            self.engine, self.data_u8.cast(), self.data_size)
+
+#---------------------------------------------------------------------------
