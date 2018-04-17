@@ -1,15 +1,12 @@
-
 This is the first iteration of the design.
 After initial implementation drafting, there are the following issues:
 - rules could be per device on gateway(app) side (not so much on device side ?)
-- what to do if several fragmentation rules apply? rule "matching" is not
-  currently very subtle
-- bytecode format with easier way to index rules
+- what to do if several fragmentation rules apply? rule "matching" is TBD
 
 ---------------------------------------------------------------------------
 
-In this implementation, the rules are stored as 'bytecode', a set of bytes 
-independent from their representation.
+In this implementation, the rule actions are stored as 'bytecode',
+a set of bytes  independent from their representation.
 
 The reason is that implementation targets primarily embedded systems (as opposed
 to server side), and the rationale are as follow:
@@ -31,7 +28,7 @@ The basic non-optimized bytecode is as follows:
 - each rule is associated with a context as in SSCH (Soichi's SCHC) [2].
   In the non-optimized version, the context is unique and MUST have ID=0
 
---- Bytecode format of the SCHIC v0:
+--- Bytecode format of the SCHIC v0+:
 (a future optimizing version with options etc. would rather use CBOR for
  meta-information, and maybe keep base CDA action as bytecode).
 
@@ -46,40 +43,38 @@ The basic non-optimized bytecode is as follows:
 <MIC function code(1)>  (SCHIC_MIC_TYPE_...)
 
 -- Rules:
-<N = number of rules (4)>
+<number of fragmentation rules (4)> (=N)
+<number of compression rules (4)>   (=M)
 
--- Rule bytecode:
-<rule type (1)>                (SCHIC_COMPRESS or SCHIC_FRAGMENT)
+-- Fragmentation rule x N:
 <rule ID (4)>                  (should not exceed rule ID bitsize)
-
--- Additional rule bytecode:
-- If rule type == SCHIC_COMPRESS
-<rule nb action(1)>               (number of actions)
-<rule bytecode position (4)>      (position of 1st action bytecode in bytes)
-<rule bytecode size (4)>          (size in bytes)
-
-- else if rule type = SCHIC_FRAGMENT   (from SSCH:)
 <fragment mode (1)>            (NO-ACK, ...)
 <dtag bitsize (1)>             (maximum 32 [bits])
 <fcn bitsize (1)>              (maximum 32 [bits])
 <default dtag (4)>             (lower size then dtag_bitsize)
 
+-- Compression rule x M:
+<rule ID (4)>                  (should not exceed rule ID bitsize)
+<rule nb action(1)>            (number of actions)
+<rule bytecode position (4)>   (position of 1st action bytecode in bytes)
+<rule bytecode size (4)>       (size in bytes) XXX: fix, use nb action
+
 -- Rule CDA action bytecode:
-<fid namespace (1)>            (one of the SCHIC_FID_SPACE_...)
-<fid (1)>                      (the Field ID FID)
-<fid position (1)>             (Field Position (FP))
-<direction (1)>                (Up, Dw, Bi)
-<matching operator (1)>        (one of the CDA_...)
-<rule byte data position (4)>  (position of 1st byte data in bytes)
-<rule byte data size (4)>      (size in bytes)
+<fid namespace (1)>               (one of the SCHIC_FID_SPACE_...)
+<fid (1)>                         (the Field ID FID)
+<fid position (1)>                (Field Position (FP))
+<direction (1)>                   (Up, Dw, Bi)
+<matching operator (1)>           (one of the CDA_...)
+<rule bytecode data position (4)> (position of 1st byte data in bytes)
+<rule bytecode data size (4)>     (size in bytes)
 
 ---------------------------------------------------------------------------
 
 [1] classic-SCHC: (by L. Toutain, P. Clavier and many others.)
-   https://github.com/ltn22/SCHC 
+   https://github.com/ltn22/SCHC
 [2] SSCHC: Soichi's SCHC implementation in Python,
     http://github.com/tanupoo/schc-test
-[3] Jose's SCHC: 
+[3] Jose's SCHC:
     https://github.com/jia200x/lpwan-ipv6-schc
 
 ---------------------------------------------------------------------------

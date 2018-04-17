@@ -34,7 +34,8 @@ typedef enum {
 static inline bool schic_mic_type_is_valid(schic_mic_type_t value)
 { return 0 <= value && value < SCHIC_MIC_TYPE_COUNT; }
 
-
+#if 0
+// XXX: remove
 typedef enum {
     SCHIC_RULE_COMPRESS = 0,
     SCHIC_RULE_FRAGMENT,
@@ -43,7 +44,8 @@ typedef enum {
 
 static inline bool schic_rule_type_is_valid(schic_rule_type_t value)
 { return 0 <= value && value < SCHIC_RULE_COUNT; }
-
+#endif
+    
 /*---------------------------------------------------------------------------*/
 /* Fragmentation rules */
 /*&

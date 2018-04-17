@@ -24,11 +24,16 @@ typedef struct {
 } rule_context_t;
 
 typedef struct {
-    uint8_t *bytecode;
-    size_t   bytecode_size;
+    uint8_t *raw_rule;
+    size_t   raw_rule_size;
 
-    unsigned int rule_count;
-    size_t rule_start_position;
+    size_t rule_frag_count;
+    size_t rule_frag_start;
+    size_t rule_compress_count;
+    size_t rule_compress_start;
+ 
+    size_t bytecode_start;
+    size_t bytecode_size;    
 
     rule_context_t rule_context;
 } rule_engine_t;
