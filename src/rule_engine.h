@@ -16,60 +16,34 @@ extern "C" {
 
 /*--------------------------------------------------*/
 
-/*&
- 848 6.5.  Compression Decompression Actions (CDA)
- 849
- 850    The Compression Decompression Action (CDA) describes the actions
- 851    taken during the compression of headers fields, and inversely, the
- 852    action taken by the decompressor to restore the original value.
- 853
- 854    /--------------------+-------------+---------------------------- \
- 855    |  Action            | Compression | Decompression              |
- 856    |                    |             |                            |
- 857    +--------------------+-------------+----------------------------+
- 858    |not-sent            |elided       |use value stored in ctxt    |
- 859    |value-sent          |send         |build from received value   |
- 860    |mapping-sent        |send index   |value from index on a table |
- 861    |LSB(y)              |send LSB     |TV, received value          |
- 862    |compute-length      |elided       |compute length              |
- 863    |compute-checksum    |elided       |compute UDP checksum        |
- 864    |Deviid              |elided       |build IID from L2 Dev addr  |
- 865    |Appiid              |elided       |build IID from L2 App addr  |
- 866    \--------------------+-------------+----------------------------/
- 867    y=size of the transmitted bits
- 868
-*/
-  
-typedef enum {
-  CDA_NOT_SENT = 0,
-  CDA_VALUE_SENT,
-  CDA_MAPPING_SENT,
-  CDA_LSB,
-  CDA_COMPUTE_LENGTH,
-  CDA_COMPUTE_CHECKSUM,
-  CDA_DEVIID,
-  CDA_APPIID
-} comp_decomp_action_t;
+typedef struct {
+    uint32_t context_id;
+    uint8_t  rule_id_bitsize;
+    uint32_t default_rule_id;
+    schic_mic_type_t mic_type;
+} rule_context_t;
 
+typedef struct {
+    uint8_t *bytecode;
+    size_t   bytecode_size;
+
+    unsigned int rule_count;
+    size_t rule_start_position;
+
+    rule_context_t rule_context;
+} rule_engine_t;
+
+void rule_engine_init(rule_engine_t *engine);
+
+int rule_engine_load_rule_bytecode(rule_engine_t *engine,
+                                   uint8_t *data, size_t data_size);
 
 /*--------------------------------------------------*/
-/*
-  Rule bytecode:
-  <rule ID (4)>
-  <fid namespace (1)>
-  <fid (1)>
-  <fid position (1)>
-  <direction (1)>
-  <matching operator (1)>
-  <matching operator data position (2)>
- */
-/*--------------------------------------------------*/
-    
+
 #ifdef __cplusplus
 }
 #endif
-    
+
 /*---------------------------------------------------------------------------*/
 
 #endif  /* RULE_ENGINE_H */
-

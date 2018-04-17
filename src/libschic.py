@@ -85,7 +85,7 @@ class Parser:
         self.packet = packet_as_bytes
         self.data_buffer = make_buffer_from_bytes(self.packet)
         self.data_size = self.data_buffer.capacity
-        self.token_count = schic_parse_ipv6(
+        self.token_count = schic_parse_ipv6_udp(
             self.data_buffer, self.token_array, MAX_TOKEN_SIZE)
         return self.token_count
 
@@ -164,6 +164,5 @@ class FragmentEngine:
 
     def get_recv_data(self):
         return data_buffer_get(self.engine.data)
-        
-        
+
 #---------------------------------------------------------------------------

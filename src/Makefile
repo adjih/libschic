@@ -64,3 +64,15 @@ really-clean: clean
 	rm -rf build __pycache__
 
 #---------------------------------------------------------------------------
+# "Manual" testing
+#---------------------------------------------------------------------------
+
+
+test: all
+	python3 testlibschic.py
+
+test-frag:
+	python3 rule_compiler.py compile ../schc-test/example-rule/fragment-rule-001.json  /dev/stdout
+
+test-comp:
+	python3 rule_compiler.py compile ../schc-test/example-rule/schc-rule-draft-09-r1.json  /dev/stdout

@@ -29,6 +29,7 @@
 #include "buffer.c" // XXX - should be in libxxx.so
 #include "parser_ipv6.c" // XXX - should be in libxxx.so
 #include "fragment.c" // XXX
+#include "rule_engine.c" // XXX
     
 %}
 
@@ -36,12 +37,12 @@
 %include "parser_ipv6.h"
 %include "schic.h"
 %include "fragment.h"
+%include "rule_engine.h"
 
 //---------------------------------------------------------------------------
 
 %array_class(uint8_t, u8array)
 %array_class(rule_token_t, rule_token_array)
-
 
 %inline %{
 

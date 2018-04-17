@@ -49,18 +49,23 @@ set_token(rule_token_t *token, const unsigned int fid,
 }
 
 /*
+ * Attempt to parse the IPv6 header, then UDP header of a packet.
+ * Returns the number of tokens successfully parsed
+ *   or -1 if there is an error (too small packet, not IPv6, etc.)
  *
- *
+ * If it is an non-UDP but still IPv6 packet, the result will be IPv6
+ * header alone (hence the only possible return values are -1,
+ * #token for IPv6 non-UDP,  or #token for IPv6+UDP)
  */
-int schic_parse_ipv6(buffer_t* data,
-                     rule_token_t* result, size_t result_max_size)
+int schic_parse_ipv6_udp(buffer_t* data,
+                         rule_token_t* result, size_t result_max_size)
 {
     size_t packet_size = buffer_get_available(data);
     //DEBUG("packet total size=%u\n", packet_total - IPV6_FIXED_HEADER_SIZE);
-    
+
     size_t result_index = 0;
     size_t current = 0;
-    CHECK_BOUND_OR_RETURN(data, result_index, result_max_size);    
+    CHECK_BOUND_OR_RETURN(data, result_index, result_max_size);
 
     /*&
       299    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -77,14 +82,14 @@ int schic_parse_ipv6(buffer_t* data,
         | ((uint32_t) data3);
     result_index += 3;
     CHECK_BOUND_OR_RETURN(data, result_index-1, result_max_size);
-    
+
     if (ip_version != IP_VERSION_IPV6) {
         DEBUG("not an IPv6 packet");
         return -1;
     }
     set_token(&result[current], FID_IPv6_version, ip_version, NULL, 4);
     set_token(&result[current+1], FID_IPv6_Traffic_class,
-	      traffic_class, NULL, 8);
+              traffic_class, NULL, 8);
     set_token(&result[current+2], FID_IPv6_Flow_label, flow_label, NULL, 20);
 
     /*&
@@ -100,7 +105,7 @@ int schic_parse_ipv6(buffer_t* data,
     CHECK_BOUND_OR_RETURN(data, result_index-1, result_max_size);
 
     if ( (packet_size < IPV6_FIXED_HEADER_SIZE)
-	 || (packet_size - IPV6_FIXED_HEADER_SIZE != payload_length)) {
+         || (packet_size - IPV6_FIXED_HEADER_SIZE != payload_length)) {
       // XXX: is it grounds for rejection ?
       DEBUG("incorrect IPv6 packet size, %zu %u\n",
             packet_size, payload_length);
@@ -109,10 +114,10 @@ int schic_parse_ipv6(buffer_t* data,
     set_token(&result[current], FID_IPv6_Payload_Length,
               payload_length, NULL, BUFFER_SIZE_U16*BITS_PER_BYTE);
     set_token(&result[current+1], FID_IPv6_Next_Header,
-	      next_header, NULL, BUFFER_SIZE_U8*BITS_PER_BYTE);
+              next_header, NULL, BUFFER_SIZE_U8*BITS_PER_BYTE);
     set_token(&result[current+2], FID_IPv6_Hop_Limit,
-	      hop_limit, NULL, BUFFER_SIZE_U8*BITS_PER_BYTE);
-    
+              hop_limit, NULL, BUFFER_SIZE_U8*BITS_PER_BYTE);
+
     /*&
       303    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
       307    +                         Source Address                        +
@@ -127,10 +132,10 @@ int schic_parse_ipv6(buffer_t* data,
     /*& 2191 Both ends MUST be synchronized with the appropriate prefixes. */
 
     current = result_index;
-    uint8_t* src_prefix = buffer_peek_data(data, IPV6_SCHC_PREFIX_SIZE_BYTES);
-    uint8_t* src_iid    = buffer_peek_data(data, IPV6_SCHC_IID_SIZE_BYTES);    
-    uint8_t* dst_prefix = buffer_peek_data(data, IPV6_SCHC_PREFIX_SIZE_BYTES);
-    uint8_t* dst_iid    = buffer_peek_data(data, IPV6_SCHC_IID_SIZE_BYTES);
+    uint8_t* src_prefix = buffer_pop_data(data, IPV6_SCHC_PREFIX_SIZE_BYTES);
+    uint8_t* src_iid    = buffer_pop_data(data, IPV6_SCHC_IID_SIZE_BYTES);
+    uint8_t* dst_prefix = buffer_pop_data(data, IPV6_SCHC_PREFIX_SIZE_BYTES);
+    uint8_t* dst_iid    = buffer_pop_data(data, IPV6_SCHC_IID_SIZE_BYTES);
     result_index += 4;
     CHECK_BOUND_OR_RETURN(data, result_index-1, result_max_size);
 
@@ -141,14 +146,14 @@ int schic_parse_ipv6(buffer_t* data,
     set_token(&result[current+2], FID_IPv6_Destination_Address_Prefix,
               0, dst_prefix, IPV6_SCHC_PREFIX_SIZE_BYTES * BITS_PER_BYTE);
     set_token(&result[current+3], FID_IPv6_Destination_Address_IID,
-              0, dst_iid, IPV6_SCHC_IID_SIZE_BYTES * BITS_PER_BYTE);	      
+              0, dst_iid, IPV6_SCHC_IID_SIZE_BYTES * BITS_PER_BYTE);
 
-    /*& 
+    /*&
       343  Next Header         8-bit selector.  Identifies the type of header
       344                      immediately following the IPv6 header.  Uses
       345                      the same values as the IPv4 Protocol field
       346                      [IANA-PN].
-      
+
       1821    [IANA-PN]  IANA, "Protocol Numbers",
       1822               <https://www.iana.org/assignments/protocol-numbers>.
     */
@@ -159,7 +164,7 @@ int schic_parse_ipv6(buffer_t* data,
     // XXX: RFC 768
     /*& 2251 9.9.  UDP source and destination port */
     /*& 2275 9.10.  UDP length field */
-    /*& 2287 9.11.  UDP Checksum field */    
+    /*& 2287 9.11.  UDP Checksum field */
     current = result_index;
     uint16_t src_port     = buffer_get_u16(data);
     uint16_t dst_port     = buffer_get_u16(data);
@@ -167,7 +172,7 @@ int schic_parse_ipv6(buffer_t* data,
     uint16_t udp_checksum = buffer_get_u16(data);
     result_index += 4;
     CHECK_BOUND_OR_RETURN(data, result_index-1, result_max_size);
-    
+
     set_token(&result[current], FID_IPv6_UDP_Source_Port,
               src_port, NULL, BUFFER_SIZE_U16 * BITS_PER_BYTE);
     set_token(&result[current+1], FID_IPv6_UDP_Destination_Port,
@@ -177,7 +182,8 @@ int schic_parse_ipv6(buffer_t* data,
     set_token(&result[current+3], FID_IPv6_UDP_Checksum,
               udp_checksum, NULL, BUFFER_SIZE_U16 * BITS_PER_BYTE);
     // XXX: check udp size
-    
+    // XXX: check udp checksum?
+
     return result_index;
 }
 

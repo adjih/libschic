@@ -39,12 +39,12 @@ void bit_buffer_repr(bit_buffer_t *bit_buffer, FILE *out)
         fprintf(out, #x);                      \
         break;
 
-void ack_mode_repr(ack_mode_t ack_mode, FILE *out)
+void schic_ack_mode_repr(schic_ack_mode_t ack_mode, FILE *out)
 {
     switch (ack_mode) {
-        CASE_REPR(SCHC_NO_ACK, out);
-        CASE_REPR(SCHC_ACK_ALWAYS, out);
-        CASE_REPR(SCHC_ACK_ON_ERROR, out);
+        CASE_REPR(SCHIC_ACK_NO_ACK, out);
+        CASE_REPR(SCHIC_ACK_ALWAYS, out);
+        CASE_REPR(SCHIC_ACK_ON_ERROR, out);
     default:
         fprintf(out, "<unknown:%u>", ack_mode);
     }
@@ -55,7 +55,7 @@ void frag_engine_repr(frag_engine_t* engine, FILE *out)
     fprintf(out, "{'type':'frag_engine'");
     fprintf(out, ", 'is_sender':%u", engine->is_sender);
     fprintf(out, ", 'ack_mode':'");
-    ack_mode_repr(engine->ack_mode, out);
+    schic_ack_mode_repr(engine->ack_mode, out);
     fprintf(out, "'");
     fprintf(out, ", 'rule_id':%u", engine->rule_id);
     fprintf(out, ", 'rule_id_bitsize':%u", engine->rule_id_bitsize);

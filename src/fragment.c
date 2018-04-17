@@ -46,7 +46,7 @@ void frag_sender_prepare_noack(frag_engine_t *engine,
                                uint32_t rule_id, uint32_t dtag,
                                size_t max_frag_size)
 {
-    engine->ack_mode = SCHC_NO_ACK;
+    engine->ack_mode = SCHIC_ACK_NO_ACK;
     engine->rule_id = rule_id;
     engine->dtag = dtag;    
     engine->is_sender = true;
@@ -183,7 +183,7 @@ int frag_engine_generate(frag_engine_t *engine,
     bit_buffer_t bit_buffer;
     bit_buffer_init(&bit_buffer, &buffer);
     
-    if (engine->ack_mode == SCHC_NO_ACK) {
+    if (engine->ack_mode == SCHIC_ACK_NO_ACK) {
         return frag_engine_generate_noack(engine, &bit_buffer);
     }
     else {
@@ -196,7 +196,7 @@ int frag_engine_generate(frag_engine_t *engine,
 
 void frag_receiver_prepare_noack(frag_engine_t *engine)
 {
-    engine->ack_mode = SCHC_NO_ACK;
+    engine->ack_mode = SCHIC_ACK_NO_ACK;
     engine->is_sender = false;
 
     /*&
@@ -221,7 +221,7 @@ int frag_engine_process_noack(frag_engine_t *engine,
                               bit_buffer_t *bit_buffer)
 {
     //DXXX("enter-process: ");
-    assert(engine->ack_mode == SCHC_NO_ACK);
+    assert(engine->ack_mode == SCHIC_ACK_NO_ACK);
     
     if (bit_buffer_get_available_bitsize(bit_buffer) < engine->R) {
         DEBUG("bit_buffer content too small %zu %u.\n",
@@ -294,7 +294,7 @@ int frag_engine_process(frag_engine_t *engine, uint8_t *data, size_t data_size)
     bit_buffer_t bit_buffer;
     bit_buffer_init(&bit_buffer, &buffer);
     
-    if (engine->ack_mode == SCHC_NO_ACK) {
+    if (engine->ack_mode == SCHIC_ACK_NO_ACK) {
         return frag_engine_process_noack(engine, &bit_buffer);
     }
     else {
