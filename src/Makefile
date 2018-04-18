@@ -7,7 +7,7 @@ CFLAGS += -Wall -Wextra -g3 -fPIC
 
 #--------------------------------------------------
 
-SRCS = buffer.c parser_ipv6.c schic.c fragment.c
+SRCS = buffer.c parser_ipv6.c schic.c fragment.c rule_engine.c
 
 HEADERS = $(SRCS:.c=.h)
 
@@ -59,6 +59,8 @@ libschicmodule.c: libschic.i Makefile ${SRCS} ${HEADERS}
 clean:
 	rm -f *.a *.so *.o *.d *~ *.pyc 
 	rm -f libschicmodule.c libschicmodule.py
+	rm -f generic-rule-db.schic frag-rule-db.schic \
+              generic-rule.schic compress-rule-db.schic
 
 really-clean: clean
 	rm -rf build __pycache__

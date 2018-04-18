@@ -2,6 +2,8 @@
  * Cedric Adjih - Inria - 2018
  *---------------------------------------------------------------------------*/
 
+#include "assert.h"
+
 #include "schic.h"
 #include "rule_engine.h"
 
@@ -57,7 +59,7 @@ int rule_engine_load_rule_bytecode(rule_engine_t *engine,
             "Bad rule ID bitsize: %u\n", rule_id_bitsize);
     engine->rule_context.rule_id_bitsize = rule_id_bitsize;
 
-    uint32_t default_rule_id = buffer_get_u8(&buffer);
+    uint32_t default_rule_id = buffer_get_u32(&buffer);
     RET_IF(!u32_bitsize_lower_than(default_rule_id, rule_id_bitsize),
            "Default rule ID too large: %u (>%u bits)\n",
            default_rule_id, rule_id_bitsize);
@@ -68,9 +70,15 @@ int rule_engine_load_rule_bytecode(rule_engine_t *engine,
            "Invalid MIC type %u\n", mic_type);
     engine->rule_context.mic_type = mic_type;
 
+    DEBUG("load-rule:\n  version=%u context_id=%lu rule_id_bitsize=%u"
+          " default_rule_id=%lu mic_type=%u\n", version,
+          context_id, rule_id_bitsize, default_rule_id, mic_type);
+
     /* updating pointers */
     size_t rule_frag_count = buffer_get_u32(&buffer);
     size_t rule_compress_count = buffer_get_u32(&buffer);
+    DEBUG("  nb_rule_frag=%u nb_rule_compress=%u\n",
+          rule_frag_count, rule_compress_count);
     RET_IF(buffer.has_bound_error, "rule data too small\n");
 
     size_t rule_frag_start = buffer.position;
@@ -78,6 +86,11 @@ int rule_engine_load_rule_bytecode(rule_engine_t *engine,
     size_t rule_compress_start = rule_frag_start + rule_frag_size;
     size_t rule_compress_size = RULE_COMPRESS_SIZE * rule_compress_count;
     size_t bytecode_start = rule_compress_start + rule_compress_size;
+    DEBUG("  frag_start=%u frag_size=%u/%u\n", rule_frag_start, rule_frag_size,
+          RULE_FRAG_SIZE);
+    DEBUG("  compress_start=%u compress_size=%u/%u\n",
+          rule_compress_start, rule_compress_size, RULE_COMPRESS_SIZE);
+    DEBUG("  bytecode_start=%u data_size=%u\n", bytecode_start, data_size);
     RET_IF(bytecode_start > data_size, "out of bounds of rule data\n");
 
     engine->raw_rule = data;

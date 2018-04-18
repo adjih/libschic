@@ -48,10 +48,10 @@ class RuleBytecodeManager:
         # Context
         c = self.context
         r += struct.pack(b"!B", libschic.SCHIC_CONTEXT_ID_BASIC)
-
         ensure_max32(c["rule_id_bitsize"])
         r += struct.pack(b"!B", c["rule_id_bitsize"])
         ensure_fit_bitsize(c["default_rule_id"], c["rule_id_bitsize"])
+        r += struct.pack(b"!I", c["default_rule_id"])
         mic_type = libschic.encode(c["mic_type"])
         r += struct.pack(b"!B", mic_type)
 
