@@ -189,4 +189,7 @@ class RuleEngine:
         rule_engine_load_rule_bytecode(
             self.engine, self.data_u8.cast(), self.data_size)
 
+    def dump(self):
+        rule_engine_print(self.engine)
+
 #---------------------------------------------------------------------------

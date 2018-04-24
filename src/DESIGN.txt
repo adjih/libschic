@@ -32,7 +32,8 @@ The basic non-optimized bytecode is as follows:
 
 --- Bytecode format of the SCHIC v0+:
 (a future optimizing version with options etc. would rather use CBOR for
- meta-information, and maybe keep base CDA action as bytecode).
+ meta-information, and maybe keep base CDA action as bytecode - it is suggested
+ in the CBOR draft to use CBOR for TV).
 
 -- SCHIC header:
 <magic (4)>     "CHIC" (as ASCII bytes)

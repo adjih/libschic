@@ -11,5 +11,7 @@ import argparse
 
 rule_engine = lsc.RuleEngine()
 rule_engine.load_rule_bytecode(sys.argv[1])
+rule_engine.dump()
+print()
 
 #---------------------------------------------------------------------------

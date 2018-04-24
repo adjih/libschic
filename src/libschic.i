@@ -30,7 +30,8 @@
 #include "parser_ipv6.c" // XXX - should be in libxxx.so
 #include "fragment.c" // XXX
 #include "rule_engine.c" // XXX
-    
+#include "rule_engine_repr.c" // XXX
+
 %}
 
 %include "buffer.h"
@@ -45,6 +46,11 @@
 %array_class(rule_token_t, rule_token_array)
 
 %inline %{
+
+    void rule_engine_print(rule_engine_t* engine)
+    {
+        rule_engine_repr(engine, stdout);
+    }
 
 %}
 

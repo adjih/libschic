@@ -321,7 +321,7 @@ void compute_mic(uint8_t* data, size_t data_size,
 
 /*---------------------------------------------------------------------------*/
 
-/*
+/*&
 
 1337    In the No-ACK mode, SCHC fragments except the last one SHALL conform
 1338    to the detailed format defined in Figure 10.  The total size of the

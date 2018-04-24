@@ -2,7 +2,7 @@
  * Cedric Adjih - Inria - 2018
  *---------------------------------------------------------------------------*/
 
-#include "assert.h"
+#include <assert.h>
 
 #include "schic.h"
 #include "rule_engine.h"
@@ -20,6 +20,9 @@
 
 /*---------------------------------------------------------------------------*/
 
+#define RULE_FRAG_SIZE (4+ 1+1+1+4)
+#define RULE_COMPRESS_SIZE (4+ 1+4+4)
+
 void rule_engine_init(rule_engine_t *engine)
 {
     memset(&engine, 0, sizeof(engine));
@@ -27,8 +30,54 @@ void rule_engine_init(rule_engine_t *engine)
 
 /*---------------------------------------------------------------------------*/
 
-#define RULE_FRAG_SIZE (4+ 1+1+1+4)
-#define RULE_COMPRESS_SIZE (4+ 1+4+4)
+// XXX: remove function (at least from .h)
+void rule_engine_set_buffer_frag_rule
+(rule_engine_t* engine, buffer_t* rule_buffer, size_t frag_rule_idx)
+{
+    assert(frag_rule_idx < engine->rule_frag_count);
+    size_t position = engine->rule_frag_start
+        + frag_rule_idx * RULE_FRAG_SIZE;
+    buffer_init(rule_buffer, engine->raw_rule+position, RULE_FRAG_SIZE);
+}
+
+void rule_engine_retrieve_frag_rule
+(rule_engine_t* engine, size_t frag_rule_idx, parsed_frag_rule_t* result)
+{
+    buffer_t buffer;
+    rule_engine_set_buffer_frag_rule(engine, &buffer, frag_rule_idx);
+    result->rule_id = buffer_get_u32(&buffer);
+    result->ack_mode = buffer_get_u8(&buffer);
+    result->dtag_bitsize = buffer_get_u8(&buffer);
+    result->fcn_bitsize = buffer_get_u8(&buffer);
+    result->default_dtag = buffer_get_u32(&buffer);
+    assert(!buffer.has_bound_error); /* must not happen with any input */
+    assert(buffer_get_available(&buffer) == 0);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void rule_engine_set_buffer_compress_rule
+(rule_engine_t* engine, buffer_t* rule_buffer, size_t compress_rule_idx)
+{
+    assert(compress_rule_idx < engine->rule_compress_count);
+    size_t position = engine->rule_compress_start
+        + compress_rule_idx * RULE_COMPRESS_SIZE;
+    buffer_init(rule_buffer, engine->raw_rule+position, RULE_COMPRESS_SIZE);
+}
+
+void rule_engine_retrieve_compress_rule
+(rule_engine_t* engine, size_t compress_rule_idx,
+ parsed_compress_rule_t* result)
+{
+    buffer_t buffer;
+    rule_engine_set_buffer_compress_rule(engine, &buffer, compress_rule_idx);
+    result->rule_id = buffer_get_u32(&buffer);
+    result->nb_action = buffer_get_u8(&buffer);
+    result->bytecode_position = buffer_get_u32(&buffer);
+    result->bytecode_size = buffer_get_u32(&buffer);
+}
+
+/*---------------------------------------------------------------------------*/
 
 int rule_engine_load_rule_bytecode(rule_engine_t *engine,
                                    uint8_t *data, size_t data_size)
@@ -70,8 +119,8 @@ int rule_engine_load_rule_bytecode(rule_engine_t *engine,
            "Invalid MIC type %u\n", mic_type);
     engine->rule_context.mic_type = mic_type;
 
-    DEBUG("load-rule:\n  version=%u context_id=%lu rule_id_bitsize=%u"
-          " default_rule_id=%lu mic_type=%u\n", version,
+    DEBUG("load-rule:\n  version=%u context_id=%u rule_id_bitsize=%u"
+          " default_rule_id=%u mic_type=%u\n", version,
           context_id, rule_id_bitsize, default_rule_id, mic_type);
 
     /* updating pointers */
@@ -86,11 +135,11 @@ int rule_engine_load_rule_bytecode(rule_engine_t *engine,
     size_t rule_compress_start = rule_frag_start + rule_frag_size;
     size_t rule_compress_size = RULE_COMPRESS_SIZE * rule_compress_count;
     size_t bytecode_start = rule_compress_start + rule_compress_size;
-    DEBUG("  frag_start=%u frag_size=%u/%u\n", rule_frag_start, rule_frag_size,
-          RULE_FRAG_SIZE);
-    DEBUG("  compress_start=%u compress_size=%u/%u\n",
+    DEBUG("  frag_start=%zu frag_size=%zu/%u\n", rule_frag_start,
+          rule_frag_size, RULE_FRAG_SIZE);
+    DEBUG("  compress_start=%zu compress_size=%zu/%u\n",
           rule_compress_start, rule_compress_size, RULE_COMPRESS_SIZE);
-    DEBUG("  bytecode_start=%u data_size=%u\n", bytecode_start, data_size);
+    DEBUG("  bytecode_start=%zu data_size=%zu\n", bytecode_start, data_size);
     RET_IF(bytecode_start > data_size, "out of bounds of rule data\n");
 
     engine->raw_rule = data;
@@ -112,12 +161,6 @@ bool frag_check_rule_match
  buffer_t* rule_buffer)
 {
     /* buffer is expected to be just past rule type */
-    uint32_t rule_id = buffer_get_u8(rule_buffer);
-    uint8_t fragment_mode = buffer_get_u8(rule_buffer);
-    uint8_t dtag_bitsize = buffer_get_u8(rule_buffer);
-    uint8_t fcn_bitsize = buffer_get_u8(rule_buffer);
-
-    assert(!rule_buffer->has_bound_error); /* must not happen with any input */
 
     return false; // XXX: not implemented yet
 }
