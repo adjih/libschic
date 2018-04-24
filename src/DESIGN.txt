@@ -76,8 +76,14 @@ The basic non-optimized bytecode is as follows:
 
 libschic format (SCHIC_ + uppercase/underscore of what is written in draft)
 
+
+
 exception: NO_ACK -> SCHIC_ACK_NO_ACK
 [...]
+
+The following tables define the correspondance because libschic notations
+(as defined in *.h, parsed by swig, and with SCHIC_ prefix removed), and
+the notations of SSCHC.
 
 ----- Context (libschic vs SSCHC):
 

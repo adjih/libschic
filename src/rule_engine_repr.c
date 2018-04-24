@@ -46,11 +46,32 @@ void rule_engine_compress_rule_repr(rule_engine_t *engine,
         if (i > 0) {
             fprintf(out,",");
         }
-        if (i+RULE_CDA_SIZE > rule.bytecode_size) {
-            fprintf(out,"'overflow'");
+        if (i+RULE_CDA_SIZE <= rule.bytecode_size) {
+            fprintf(out, "'");
+            buffer_t buffer;
+            size_t position = engine->bytecode_start+rule.bytecode_position+i;
+            if (rule.bytecode_position+i + RULE_CDA_SIZE
+                > engine->bytecode_size) {
+                fprintf(out, "tv-bytecode-overflow'");
+                continue;
+            }
+            buffer_init(&buffer, engine->raw_rule + position, RULE_CDA_SIZE);
+            for (size_t j=0; j<6; j++) {
+                if (j > 0) {
+                    fprintf(out, " ");
+                }
+                fprintf(out, "%02x", buffer_get_u8(&buffer));
+            }
+            for (size_t j=0; j<2; j++) {
+                fprintf(out, " %08x", buffer_get_u32(&buffer));
+            }
+            fprintf(out, "'");
+        }
+        else {
+            fprintf(out,"'rule-bytecode-overflow'");
         }
     }
-    
+
     fprintf(out, "]");
     fprintf(out, "}");
 }
