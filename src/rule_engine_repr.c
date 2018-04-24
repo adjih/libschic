@@ -26,6 +26,8 @@ void rule_engine_frag_rule_repr(rule_engine_t *engine,
     fprintf(out, "}");
 }
 
+#define RULE_CDA_SIZE (1+1+1+1+1+1 +4 +4)
+
 void rule_engine_compress_rule_repr(rule_engine_t *engine,
                                     size_t rule_idx, FILE *out)
 {
@@ -38,6 +40,18 @@ void rule_engine_compress_rule_repr(rule_engine_t *engine,
     fprintf(out, ", 'nb_action':%u", rule.nb_action); // XXX: not an in
     fprintf(out, ", 'bytecode_position':%zu", rule.bytecode_position);
     fprintf(out, ", 'bytecode_size':%zu", rule.bytecode_size);
+
+    fprintf(out, ", 'bytecode':[");
+    for (unsigned int i=0; i<rule.bytecode_size; i += RULE_CDA_SIZE) {
+        if (i > 0) {
+            fprintf(out,",");
+        }
+        if (i+RULE_CDA_SIZE > rule.bytecode_size) {
+            fprintf(out,"'overflow'");
+        }
+    }
+    
+    fprintf(out, "]");
     fprintf(out, "}");
 }
 

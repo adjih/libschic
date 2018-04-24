@@ -8,7 +8,7 @@ CFLAGS += -Wall -Wextra -g3 -fPIC
 #--------------------------------------------------
 
 SRCS = buffer.c parser_ipv6.c schic.c fragment.c rule_engine.c \
-       rule_engine_repr.c
+ rule_engine_repr.c
 
 HEADERS = $(SRCS:.c=.h)
 
