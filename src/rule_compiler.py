@@ -102,7 +102,7 @@ class RuleBytecodeManager:
             rbc_size = len(all_action_bc)
             bc += all_action_bc
 
-            rr  = struct.pack(b"!B", rule["rule_id"])
+            rr  = struct.pack(b"!I", rule["rule_id"])
             rr += struct.pack(b"!B", len(rule["action_list"]))
             rr += struct.pack(b"!I", rbc_position)
             rr += struct.pack(b"!I", rbc_size)
