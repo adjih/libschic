@@ -24,6 +24,10 @@ draft-schc-16-ref.txt: draft-ietf-lpwan-ipv6-static-context-hc-16-lines.txt
 	python ../src/compactdraft.py $< $@ \
                  "Minaburo, et al." "LPWAN SCHC"
 
+draft-schc-lorawan-02-ref.txt: draft-petrov-lpwan-ipv6-schc-over-lorawan-02-lines.txt
+	python ../src/compactdraft.py $< $@ \
+	    	"Sornin, et al." "SCHC-over-LoRaWAN"	
+
 #---------------------------------------------------------------------------
 
 draft-ietf-lpwan-ipv6-static-context-hc.txt:
@@ -40,6 +44,9 @@ draft-%.txt:
 extra: draft-barthel-icmpv6-schc-00-lines.txt \
   draft-lagos-lpwan-icmpv6-static-context-hc-01-lines.txt \
   draft-ietf-lpwan-ipv6-static-context-hc-16-lines.txt \
-  draft-schc-16-ref.txt
+  draft-schc-16-ref.txt \
+  draft-petrov-lpwan-ipv6-schc-over-lorawan-02-lines.txt \
+  draft-schc-lorawan-02-ref.txt
+
 
 #enscript -o a.ps -r -2 draft-barthel-icmpv6-schc-00-lines.txt 
