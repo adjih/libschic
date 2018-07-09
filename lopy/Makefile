@@ -26,8 +26,9 @@ ${M}:
 #export IDF_PATH=/home/vmadmin/esp/pycom-esp-idf
 
 build:
+	test -L ${PM}/esp32/schic-upy || ln -s ../.. ${PM}/esp32/schic-upy
 	cd ${PM}/esp32 && . ~/esp/p && make BOARD=${BOARD} TARGET=boot
-	cd ${PM}/esp32 && . ~/esp/p && make BOARD=${BOARD} TARGET=app
+	cd ${PM}/esp32 && . ~/esp/p && make BOARD=${BOARD} TARGET=app V=1
 
 flash: build
 	cd ${PM}/esp32 && . ~/esp/p && killall miniterm ; \
@@ -39,7 +40,13 @@ clean:
 
 native-build:
 	make ${M}
+	test -L ${M}/ports/unix/schic-upy \
+           || ln -s ../../.. ${M}/ports/unix/schic-upy
 	cd ${M}/ports/unix && make axtls
 	cd ${M}/ports/unix && make V=1
+
+run:
+	make native-build
+	cd ${M}/ports/unix && ./micropython ../../../test_schic_upy.py
 
 #---------------------------------------------------------------------------

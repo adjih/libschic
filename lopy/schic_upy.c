@@ -1,10 +1,15 @@
 /*---------------------------------------------------------------------------*/
 
+#ifdef ESP_PLATFORM
+/* avoid conflicting definitions of buffer_t */
+#define _BUFFER_H_
+#endif
+
 #include "py/nlr.h"
 #include "py/obj.h"
 #include "py/runtime.h"
 #include "py/binary.h"
-// #include "portmodules.h"
+//#include "portmodules.h"
 
 #include "schic.h"
 #include "buffer.h"
@@ -39,7 +44,7 @@ STATIC void schic_engine_print(const mp_print_t *print,
 			       mp_print_kind_t kind)
 {
   schic_engine_obj_t *self = MP_OBJ_TO_PTR(self_in);
-  printf ("engine-value=%u", self->value);
+  printf ("engine-value=%u\n", self->value);
 }
 
 /*---------------------------------------------------------------------------*/
