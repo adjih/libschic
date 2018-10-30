@@ -20,7 +20,12 @@ rfc8200-ref.txt:
 
 unused:
 
-draft-schc-16-ref.txt: draft-ietf-lpwan-ipv6-static-context-hc-16-lines.txt
+draft-schc-17-ref.txt: draft-ietf-lpwan-ipv6-static-context-hc-27-lines.txt
+	python ../src/compactdraft.py $< $@ \
+                 "Minaburo, et al." "LPWAN SCHC"
+
+draft-ietf-lpwan-ipv6-static-context-hc-17-ref.txt: \
+            draft-ietf-lpwan-ipv6-static-context-hc-27-lines.txt
 	python ../src/compactdraft.py $< $@ \
                  "Minaburo, et al." "LPWAN SCHC"
 
@@ -41,12 +46,16 @@ draft-ietf-lpwan-ipv6-static-context-hc.txt:
 draft-%.txt:
 	wget https://tools.ietf.org/id/$@
 
-extra: draft-barthel-icmpv6-schc-00-lines.txt \
+extra: draft-ietf-lpwan-ipv6-static-context-hc-17-ref.txt \
+  draft-barthel-icmpv6-schc-00-lines.txt \
   draft-lagos-lpwan-icmpv6-static-context-hc-01-lines.txt \
   draft-ietf-lpwan-ipv6-static-context-hc-16-lines.txt \
-  draft-schc-16-ref.txt \
+  draft-ietf-lpwan-ipv6-static-context-hc-17-lines.txt \
+  draft-schc-17-ref.txt \
   draft-petrov-lpwan-ipv6-schc-over-lorawan-02-lines.txt \
   draft-schc-lorawan-02-ref.txt
 
 
-#enscript -o a.ps -r -2 draft-barthel-icmpv6-schc-00-lines.txt 
+a: draft-schc-17-ref.txt
+	enscript -o a.ps -r -2 draft-schc-17-ref.txt
+	ps2pdf14 $< 
